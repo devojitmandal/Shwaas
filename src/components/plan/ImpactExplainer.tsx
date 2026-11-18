@@ -1,15 +1,13 @@
 'use client';
 
 import { ExposureResult } from '@/lib/exposure/engine';
-import { Activity, ShieldAlert, Sparkles, TrendingDown, Info } from 'lucide-react';
-import Link from 'next/link';
+import { Activity, Sparkles, TrendingDown, Info } from 'lucide-react';
 
 interface ImpactExplainerProps {
   exposure: ExposureResult;
-  currentAqi: number;
 }
 
-export default function ImpactExplainer({ exposure, currentAqi }: ImpactExplainerProps) {
+export default function ImpactExplainer({ exposure }: ImpactExplainerProps) {
   const outdoorSharePercent =
     exposure.baselineDose > 0
       ? Math.round((exposure.outdoorDose / exposure.baselineDose) * 100)

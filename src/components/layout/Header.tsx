@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { motion, useScroll, useMotionValueEvent, useReducedMotion } from 'framer-motion';
-import { Wind, ShieldAlert, Users, Compass } from 'lucide-react';
+import { Wind, Users, Compass } from 'lucide-react';
 
 const TOP_ZONE = 80;
 const HIDE_AFTER = 50;

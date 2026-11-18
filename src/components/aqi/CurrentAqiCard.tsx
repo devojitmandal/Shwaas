@@ -1,7 +1,7 @@
 'use client';
 
 import { NaqiCategory } from '@/lib/aqi/naqi';
-import { Wind, AlertTriangle, Info, CheckCircle2, CloudRain } from 'lucide-react';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface CurrentAqiCardProps {
   cityName: string;

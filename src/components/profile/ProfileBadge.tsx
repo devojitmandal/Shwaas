@@ -1,7 +1,7 @@
 'use client';
 
 import { HouseholdProfile } from '@/lib/validation/profileSchema';
-import { Home, Users, Shield, Wind, Sparkles, Edit3 } from 'lucide-react';
+import { Users, Edit3 } from 'lucide-react';
 
 interface ProfileBadgeProps {
   profile: HouseholdProfile;

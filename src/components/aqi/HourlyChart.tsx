@@ -26,7 +26,6 @@ export default function HourlyChart({
   }
 
   // Calculate layout bounds
-  const chartHeight = 160;
   const maxAqi = Math.max(300, ...hourly.map((h) => h.aqi));
 
   const formatHour = (isoString: string) => {

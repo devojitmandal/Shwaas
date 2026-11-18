@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Printer, Share2, Download, CheckSquare, Users, Building, GraduationCap, Check } from 'lucide-react';
+import { X, Printer, Share2, Users, Building, GraduationCap, Check } from 'lucide-react';
 
 interface CommunityModeModalProps {
   isOpen: boolean;

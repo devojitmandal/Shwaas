@@ -9,7 +9,7 @@ import {
   MaskType,
   VentilationStrategy,
 } from '@/lib/exposure/engine';
-import { Sliders, ArrowRight, Zap, Check, AlertCircle } from 'lucide-react';
+import { Sliders, ArrowRight, Zap } from 'lucide-react';
 
 interface WhatIfSimulatorProps {
   currentProfile: ExposureProfile;

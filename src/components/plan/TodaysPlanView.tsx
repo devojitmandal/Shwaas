@@ -4,9 +4,6 @@ import { PlanResponse } from '@/lib/plan/planSchema';
 import {
   Sparkles,
   ShieldAlert,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
   Lightbulb,
   HeartHandshake,
   RefreshCw,

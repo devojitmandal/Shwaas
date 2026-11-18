@@ -25,7 +25,7 @@ import {
 } from '@/lib/validation/profileSchema';
 import { PlanResponse, generateFallbackPlan } from '@/lib/plan/planSchema';
 import { calculateDailyExposure, ExposureResult } from '@/lib/exposure/engine';
-import { Loader2, AlertCircle, RefreshCw, Users, Shield } from 'lucide-react';
+import { Loader2, AlertCircle, Users } from 'lucide-react';
 
 export default function Home() {
   // Location & AQI state
@@ -250,7 +250,6 @@ export default function Home() {
           <div className="space-y-6">
             <ImpactExplainer
               exposure={exposure}
-              currentAqi={airData.current.aqi}
             />
 
             {/* Live What-If Interactive Sandbox */}

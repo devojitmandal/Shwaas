@@ -1,7 +1,7 @@
 'use client';
 
 import { OutdoorWindow } from '@/lib/api/openMeteo';
-import { Sun, Moon, Clock, ArrowRight } from 'lucide-react';
+import { Sun, Moon, Clock } from 'lucide-react';
 import { getNaqiCategory } from '@/lib/aqi/naqi';
 
 interface TimeWindowsCardProps {

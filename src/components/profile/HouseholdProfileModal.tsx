@@ -8,7 +8,7 @@ import {
   saveProfileToStorage,
   loadProfileFromStorage,
 } from '@/lib/validation/profileSchema';
-import { X, ShieldCheck, Home, Users, Bike, Flame, Wind, HeartPulse } from 'lucide-react';
+import { X, ShieldCheck, Home } from 'lucide-react';
 
 interface HouseholdProfileModalProps {
   isOpen: boolean;
