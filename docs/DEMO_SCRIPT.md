@@ -1,48 +1,50 @@
 # AirWise: 2-Minute Video Walkthrough Demo Script
 
-Use this script for your Hack2Skill Hackathon submission or LinkedIn demonstration video.
+Use this comprehensive script for your Hack2Skill Hackathon submission or video demonstration.
 
 ---
 
 ### [0:00 - 0:25] The Problem & The Solution
-**Visual:** Open AirWise at `localhost:3000`. Show the clean, atmospheric Minimal Editorial UI.
+**Visual:** Open AirWise at `localhost:3000`. Show the clean, atmospheric Minimal Editorial UI (Teal `#0E7490`, slate background, crisp typography).
 **Narrator:**
-> "Winter smog across urban India traps toxic fine particulate matter at ground level, creating severe health emergencies for children and seniors. Most air quality apps merely report scary numbers without telling families how their specific choices reduce exposure.
+> "Severe winter smog across urban India traps toxic fine particulate matter at ground level, creating dangerous health emergencies for millions of families. Most air quality apps merely display scary numbers without showing citizens how their daily decisions directly alter their inhaled pollution intake.
 >
-> Meet **AirWise** — an urban air quality assistant that combines free real-time Open-Meteo telemetry, India's official CPCB NAQI standards, and a deterministic mathematical exposure engine to generate tailored daily smog defense routines."
+> Meet **AirWise** — an AI-powered urban air quality assistant that combines free real-time Open-Meteo atmospheric telemetry, India's official CPCB NAQI standards, and a deterministic mathematical exposure engine to generate tailored daily smog defense routines with quantified exposure reductions."
 
 ---
 
-### [0:25 - 0:50] Live AQI & Hourly Inversion Progression
-**Visual:** Type 'Delhi' into the city search or click 'Locate Me'. Hover over the 24-hour forecast chart. Highlight the 'Optimal Window' and 'Peak Inversion' cards.
+### [0:25 - 0:45] Live CPCB NAQI & Dynamic Meteorological Windows
+**Visual:** Select 'Delhi' or click 'Locate Me'. Hover over the 24-hour forecast chart. Highlight the Dynamic Time Windows card and the Severe Smog Lockout alert if AQI > 300.
 **Narrator:**
-> "AirWise fetches live PM2.5 and PM10 concentrations and computes India's National AQI using exact CPCB breakpoint tables.
+> "AirWise fetches live PM2.5 and PM10 concentrations, computing India's National AQI using exact CPCB breakpoint tables.
 >
-> Notice the 24-hour forecast chart: AirWise identifies the atmospheric inversion cycle. It pinpoints the **Peak Smog Trap** — usually between 6 AM and 9 AM — and reveals the **Optimal Outdoor Window** during afternoon solar mixing, so you know exactly when it is safe to step out or air your home."
+> Rather than assuming afternoon is always safe, our dynamic meteorological engine evaluates wind speed, humidity, and atmospheric boundary-layer mixing. When severe smog locks the city above 300 AQI, it triggers an explicit alert warning that no outdoor window is truly safe, advising complete indoor sheltering."
 
 ---
 
-### [0:50 - 1:20] Household Profile & Deterministic Exposure Engine
-**Visual:** Click 'Adjust Profile'. Show the modal with kids, elderly, two-wheeler commute, and kitchen fuel. Save it. Scroll to the 'Deterministic Exposure Impact Model'.
+### [0:45 - 1:10] Breath Budget & Physical Indoor Mass-Balance Sandbox
+**Visual:** Scroll to the 'Breath Budget Tracker' and the 'Physical Indoor Room Mass-Balance' model. Adjust the room size slider and toggle the HEPA purifier.
 **Narrator:**
-> "Privacy comes first: your household profile is stored strictly in your browser's localStorage — no accounts, no health data sent to any server.
+> "Here is our scientific foundation: each person tracks a relative daily **Breath Budget**, benchmarked against WHO guidelines. AirWise transparently computes inhaled particulate mass in micrograms using EPA inhalation rates.
 >
-> Here is what makes AirWise unique: **Gemini never invents numbers.** Our unit-tested deterministic engine models your daily inhaled particulate mass in microgram-hours per cubic meter. It calculates the exact split between outdoor commute and indoor infiltration, proving that indoor clean-rooms often deliver the highest protective leverage."
+> In the new **Indoor Air Modeling sandbox**, we solve the classical single-zone mass-balance equation live. You can test your room volume, infiltration rates, and purifier CADR to see steady-state indoor PM2.5 concentrations drop from 180 down to under 25 micrograms."
 
 ---
 
-### [1:20 - 1:45] Live What-If Sandbox & Personalized Plan
-**Visual:** In the 'Real-Time What-If Sandbox', click 'Metro + N95 Respirator', then 'Deploy Purifier'. Watch the dose drop by over 60% live. Scroll to 'Today's Plan'.
+### [1:10 - 1:35] Baseline vs. Optimized Impact Dashboard & Gemini Protocol
+**Visual:** Scroll to the 'MY AIRWISE IMPACT' dashboard. Point out the side-by-side comparison bars showing the avoided particulate mass. Show 'Today's Plan'.
 **Narrator:**
-> "Curious about your choices? The live What-If sandbox recalculates your exposure instantly. Switch from an open two-wheeler to the metro, or seal windows, and watch your daily inhaled dose plummet in real time.
+> "In the **AirWise Impact Dashboard**, we compare your unmitigated baseline routine against our optimized protocol — highlighting over 70% avoided particulate burden.
 >
-> Below, Gemini synthesizes an empathetic, actionable routine with scientific indoor hacks — like the DIY box-fan with MERV 13 filter — and verified myth-checks."
+> **Gemini never invents numbers.** Our server-side route validates all metrics against Zod schemas. Gemini synthesizes personalized, empathetic defense protocols, DIY box-fan hacks, and crucial myth-checks without hallucinating statistics."
 
 ---
 
-### [1:45 - 2:00] Community Mode & Closing
-**Visual:** Click 'Community Mode' from the top header. Show the printable RWA checklist with guard heater distribution and school assembly guidelines. Click 'Print Checklist'.
+### [1:35 - 2:00] WhatsApp Sharing & Community Self-Defense
+**Visual:** Click 'Generate WhatsApp Card' to render the visual plan preview. Then open 'Community Mode' from the header to showcase RWA, School, and Community checklists with one-click printing.
 **Narrator:**
-> "Finally, smog requires collective defense. With one click in **Community Mode**, residential associations and schools can print concrete checklists — like providing electric heaters to night security guards to stop toxic trash fires.
+> "To protect extended families, one tap generates a **WhatsApp Share Card** with today's action plan ready for family group chats.
+>
+> And because clean air requires collective defense, **Community Mode** provides printable, actionable protocols for apartment RWAs to provide security guard heaters and for schools to halt morning outdoor assemblies.
 >
 > AirWise: scientific clarity, zero hallucinations, actionable urban resilience. Thank you!"

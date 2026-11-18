@@ -10,6 +10,15 @@ export type CommuteType =
 
 export type MaskType = 'none' | 'cloth_surgical' | 'n95_kn95';
 
+export type MaskFitQuality = 'tight_fit' | 'typical_fit' | 'loose_fit';
+
+export type ActivityIntensity =
+  | 'sleep_rest'
+  | 'sedentary_indoor'
+  | 'light_transit'
+  | 'moderate_commute'
+  | 'strenuous_exercise';
+
 export type CookingFuel = 'lpg_electric' | 'biomass_kerosene' | 'wood';
 
 export type VentilationStrategy =
@@ -17,61 +26,144 @@ export type VentilationStrategy =
   | 'sealed_windows'
   | 'timed_afternoon';
 
+export interface RoomParameters {
+  roomAreaSqM: number; // e.g. 15 m² (approx 160 sq ft bedroom)
+  ceilingHeightM: number; // e.g. 2.8 m
+  cadrM3H?: number; // Clean Air Delivery Rate in m³/h (standard purifier ~200-300 m³/h)
+  hasPurifier: boolean;
+  ventilationStrategy: VentilationStrategy;
+  cookingFuel: CookingFuel;
+}
+
 export interface ExposureProfile {
   currentAqi: number;
   pm25Concentration: number; // in µg/m³
   timeOutdoorsHours: number; // e.g. 0 to 24
   commuteType: CommuteType;
   maskType: MaskType;
+  maskFit?: MaskFitQuality;
   indoorHours: number; // e.g. 24 - timeOutdoorsHours
   hasPurifier: boolean;
   cookingFuel: CookingFuel;
   ventilationStrategy: VentilationStrategy;
+  roomParameters?: Partial<RoomParameters>;
   vulnerableMembers: {
     hasKids: boolean;
     hasElderly: boolean;
   };
 }
 
-// Infiltration ratio based on window sealing & timing
-export const INFILTRATION_FACTORS: Record<VentilationStrategy, number> = {
-  windows_open: 0.85,
-  sealed_windows: 0.55,
-  timed_afternoon: 0.65,
+// Inhalation rates by activity intensity in m³/hour (source: EPA Exposure Factors Handbook)
+export const BREATHING_RATES: Record<ActivityIntensity, number> = {
+  sleep_rest: 0.45, // ~7.5 L/min
+  sedentary_indoor: 0.60, // ~10 L/min
+  light_transit: 0.90, // ~15 L/min
+  moderate_commute: 1.40, // ~23 L/min (walking, light cycling, two-wheeler)
+  strenuous_exercise: 2.20, // ~37 L/min (running, heavy cycling)
 };
 
-// Mask penetration factor (1 - filtration efficiency)
-export const MASK_PENETRATION_FACTORS: Record<MaskType, number> = {
-  none: 1.0, // 0% filtration
-  cloth_surgical: 0.70, // ~30% effective filtration due to edge seal leakage
-  n95_kn95: 0.08, // ~92% effective protection with tight seal
+// Mask penetration factor accounting for fit uncertainty
+export const MASK_PENETRATION_FACTORS: Record<MaskType, Record<MaskFitQuality, number>> = {
+  none: { tight_fit: 1.0, typical_fit: 1.0, loose_fit: 1.0 },
+  cloth_surgical: { tight_fit: 0.65, typical_fit: 0.70, loose_fit: 0.80 },
+  n95_kn95: { tight_fit: 0.08, typical_fit: 0.20, loose_fit: 0.45 },
 };
 
-// Commute proximity and inhalation rate multiplier
-export const COMMUTE_FACTORS: Record<CommuteType, number> = {
-  walk: 1.35, // High minute ventilation rate (~25 L/min)
-  bicycle: 1.50, // Strenuous aerobic respiration rate
-  two_wheeler: 1.40, // Direct tailpipe exposure & wake turbulence
-  car_open: 1.10, // Traffic corridor proximity
-  car_ac: 0.40, // Closed cabin + AC particulate filter
-  metro_bus_transit: 0.50, // Filtered carriage / indoor station concourse
+// Infiltration Air Exchange Rates (AER in air changes per hour: h⁻¹)
+export const AIR_EXCHANGE_RATES: Record<VentilationStrategy, number> = {
+  sealed_windows: 0.35, // Tight residential envelope with closed doors/windows
+  timed_afternoon: 0.65, // Closed during smog peaks; brief afternoon air flush
+  windows_open: 2.50, // Free natural cross-ventilation
 };
 
-// Indoor cooking fuel background increment in µg/m³
-export const COOKING_INCREMENTS: Record<CookingFuel, number> = {
-  lpg_electric: 5,
-  biomass_kerosene: 45,
-  wood: 70,
+// Indoor particulate emission rates (µg/hour) from combustion/cooking
+export const INDOOR_SOURCE_EMISSIONS: Record<CookingFuel, number> = {
+  lpg_electric: 150, // Clean flame with modest kitchen exhaust
+  biomass_kerosene: 1200, // Elevated fine particulate from fuel combustion
+  wood: 3500, // Heavy solid fuel / biomass plume
 };
 
-// Purifier penetration factor (HEPA or DIY box-fan with MERV 13/HEPA)
-export const PURIFIER_PENETRATION = 0.25; // 75% indoor particle reduction
+export const DEFAULT_ROOM_AREA_SQM = 16;
+export const DEFAULT_CEILING_HEIGHT_M = 2.8;
+export const DEFAULT_PURIFIER_CADR_M3H = 250; // Standard medium-room HEPA cleaner
+export const PARTICLE_PENETRATION_EFFICIENCY = 0.80; // Building envelope filter factor
+export const SURFACE_DEPOSITION_RATE_PER_H = 0.20; // Natural settling velocity for PM2.5
+
+export interface IndoorMassBalanceResult {
+  estimatedIndoorConcentration: number; // in µg/m³
+  unmitigatedIndoorConcentration: number; // without purifier
+  indoorExposureAvoidedPerDayUg: number; // particulate mass avoided in indoor hours
+  roomVolumeM3: number;
+  effectiveAirCleaningRate: number; // h⁻¹
+  label: string;
+}
+
+/**
+ * Peer-reviewed single-zone mass-balance model for steady-state indoor PM2.5:
+ * C_in = (P * AER * C_out + S / V) / (AER + k_dep + CADR / V)
+ */
+export function calculateIndoorMassBalance(
+  cOut: number,
+  params: RoomParameters,
+  indoorHours = 20
+): IndoorMassBalanceResult {
+  const roomArea = Math.max(5, params.roomAreaSqM || DEFAULT_ROOM_AREA_SQM);
+  const ceilingHeight = Math.max(2, params.ceilingHeightM || DEFAULT_CEILING_HEIGHT_M);
+  const volume = roomArea * ceilingHeight; // V in m³
+
+  const aer = AIR_EXCHANGE_RATES[params.ventilationStrategy] ?? 0.65;
+  const p = PARTICLE_PENETRATION_EFFICIENCY;
+  const kDep = SURFACE_DEPOSITION_RATE_PER_H;
+  const sourceEmission = INDOOR_SOURCE_EMISSIONS[params.cookingFuel] ?? 150;
+
+  // CADR removal rate in h⁻¹
+  const cadr = params.hasPurifier ? params.cadrM3H || DEFAULT_PURIFIER_CADR_M3H : 0;
+  const cadrRemovalRate = cadr / volume;
+
+  // Steady-state indoor concentration with active controls
+  const totalRemoval = aer + kDep + cadrRemovalRate;
+  const numerator = p * aer * Math.max(0, cOut) + sourceEmission / volume;
+  const cInMitigated = Math.max(1, numerator / totalRemoval);
+
+  // Counterfactual baseline without purifier
+  const unmitigatedRemoval = aer + kDep;
+  const cInUnmitigated = Math.max(1, numerator / unmitigatedRemoval);
+
+  // Difference in inhaled indoor mass
+  const sedentaryBreathing = BREATHING_RATES.sedentary_indoor;
+  const avoidedInhaledMassUg = Math.max(
+    0,
+    (cInUnmitigated - cInMitigated) * sedentaryBreathing * indoorHours
+  );
+
+  return {
+    estimatedIndoorConcentration: Math.round(cInMitigated * 10) / 10,
+    unmitigatedIndoorConcentration: Math.round(cInUnmitigated * 10) / 10,
+    indoorExposureAvoidedPerDayUg: Math.round(avoidedInhaledMassUg * 10) / 10,
+    roomVolumeM3: Math.round(volume * 10) / 10,
+    effectiveAirCleaningRate: Math.round(totalRemoval * 100) / 100,
+    label: 'Calculated via physical mass-balance model (estimate, not physical sensor reading)',
+  };
+}
 
 export interface ExposureResult {
-  baselineDose: number; // in µg·h/m³
+  // Physical Inhaled Particulate Mass (in µg inhaled)
+  totalInhaledMassUg: number;
+  outdoorInhaledMassUg: number;
+  indoorInhaledMassUg: number;
+
+  // Normalized Exposure Index (previously baselineDose, in µg·h/m³ for backward compatibility)
+  baselineDose: number;
   outdoorDose: number;
   indoorDose: number;
-  indoorConcentration: number; // average estimated indoor µg/m³
+  indoorConcentration: number; // estimated steady-state indoor PM2.5 in µg/m³
+
+  // Mitigation impact
+  optimizedInhaledMassUg: number;
+  avoidedInhaledMassUg: number;
+  potentialReductionPercent: number;
+
+  // Health risk tier & provenance
   naqiCategory: NaqiCategory;
   healthRiskTier:
     | 'Minimal'
@@ -82,9 +174,9 @@ export interface ExposureResult {
     | 'Critical Emergency'
     | 'Extreme Hazard';
   vulnerabilityAlert: boolean;
-  optimizedDose: number;
-  potentialReductionPercent: number;
   recommendedInterventions: string[];
+  uncertaintyRating: 'High' | 'Medium' | 'Configurable Estimate';
+  dataProvenance: string;
 }
 
 export interface WhatIfScenarioResult {
@@ -92,38 +184,67 @@ export interface WhatIfScenarioResult {
   newDose: number;
   doseDifference: number;
   doseReductionPercent: number;
+  originalMassUg: number;
+  newMassUg: number;
+  avoidedMassUg: number;
   verdict: string;
+  assumptions: string[];
 }
 
 /**
- * Calculates integrated daily inhaled particulate exposure dose (in µg·h/m³)
- * using a microenvironmental time-activity model.
+ * Calculates physical inhaled particulate mass intake (in µg) and normalized exposure
+ * using a transparent time-activity mass concentration model:
+ * Inhaled Mass (µg) = Concentration (µg/m³) × Breathing Rate (m³/h) × Duration (h)
  */
 export function calculateDailyExposure(profile: ExposureProfile): ExposureResult {
   const naqiInfo = getNaqiCategory(profile.currentAqi);
   const cOut = Math.max(0, profile.pm25Concentration);
 
-  // 1. Outdoor component
-  const maskPen = MASK_PENETRATION_FACTORS[profile.maskType] ?? 1.0;
-  const commuteMult = COMMUTE_FACTORS[profile.commuteType] ?? 1.0;
+  // Outdoor activity calculation
   const outdoorHours = Math.max(0, Math.min(24, profile.timeOutdoorsHours));
-  const outdoorDose = outdoorHours * cOut * maskPen * commuteMult;
+  const fit = profile.maskFit || 'typical_fit';
+  const maskPen = MASK_PENETRATION_FACTORS[profile.maskType || 'none']?.[fit] ?? 1.0;
 
-  // 2. Indoor component
+  // Commute breathing rate
+  let outdoorBreathingRate = BREATHING_RATES.moderate_commute;
+  if (profile.commuteType === 'bicycle') {
+    outdoorBreathingRate = BREATHING_RATES.strenuous_exercise;
+  } else if (profile.commuteType === 'car_ac' || profile.commuteType === 'metro_bus_transit') {
+    outdoorBreathingRate = BREATHING_RATES.light_transit;
+  }
+
+  // Cabin filtration for AC vehicle / closed transit
+  let transitCabinFactor = 1.0;
+  if (profile.commuteType === 'car_ac') {
+    transitCabinFactor = 0.40; // Recirculating cabin filter
+  } else if (profile.commuteType === 'metro_bus_transit') {
+    transitCabinFactor = 0.50; // Mechanically filtered air
+  }
+
+  const effectiveOutdoorConc = cOut * maskPen * transitCabinFactor;
+  const outdoorInhaledMassUg = outdoorHours * effectiveOutdoorConc * outdoorBreathingRate;
+  const outdoorDose = outdoorHours * effectiveOutdoorConc;
+
+  // Indoor activity calculation via mass-balance model
   const indoorHours = Math.max(0, 24 - outdoorHours);
-  const infiltration = INFILTRATION_FACTORS[profile.ventilationStrategy] ?? 0.65;
-  const purifierFactor = profile.hasPurifier ? PURIFIER_PENETRATION : 1.0;
-  const cookingIncrement = COOKING_INCREMENTS[profile.cookingFuel] ?? 5;
+  const indoorParams: RoomParameters = {
+    roomAreaSqM: profile.roomParameters?.roomAreaSqM || DEFAULT_ROOM_AREA_SQM,
+    ceilingHeightM: profile.roomParameters?.ceilingHeightM || DEFAULT_CEILING_HEIGHT_M,
+    cadrM3H: profile.roomParameters?.cadrM3H || DEFAULT_PURIFIER_CADR_M3H,
+    hasPurifier: profile.hasPurifier,
+    ventilationStrategy: profile.ventilationStrategy,
+    cookingFuel: profile.cookingFuel,
+  };
 
-  const indoorConcentration = Math.max(
-    0,
-    cOut * infiltration * purifierFactor + cookingIncrement
-  );
-  const indoorDose = indoorHours * indoorConcentration;
+  const indoorBalance = calculateIndoorMassBalance(cOut, indoorParams, indoorHours);
+  const indoorBreathingRate = BREATHING_RATES.sedentary_indoor;
+  const indoorInhaledMassUg = indoorHours * indoorBalance.estimatedIndoorConcentration * indoorBreathingRate;
+  const indoorDose = indoorHours * indoorBalance.estimatedIndoorConcentration;
 
+  const totalInhaledMassUg = outdoorInhaledMassUg + indoorInhaledMassUg;
   const baselineDose = outdoorDose + indoorDose;
 
-  // 3. Health risk tier based on NAQI and vulnerability
+  // Health risk tier based on NAQI and vulnerability
   const hasVulnerable =
     profile.vulnerableMembers.hasKids || profile.vulnerableMembers.hasElderly;
   let healthRiskTier: ExposureResult['healthRiskTier'] = 'Minimal';
@@ -139,53 +260,70 @@ export function calculateDailyExposure(profile: ExposureProfile): ExposureResult
   } else if (naqiInfo.category === 'Very Poor') {
     healthRiskTier = hasVulnerable ? 'Critical Emergency' : 'Severe Hazard';
   } else {
-    // Severe
     healthRiskTier = hasVulnerable ? 'Critical Emergency' : 'Extreme Hazard';
   }
 
-  // 4. Theoretical optimal dose (best reasonable daily routine)
-  const optimalOutdoorHours = Math.min(outdoorHours, 1);
-  const optimalOutdoorDose =
-    optimalOutdoorHours *
-    cOut *
-    MASK_PENETRATION_FACTORS.n95_kn95 *
-    COMMUTE_FACTORS.metro_bus_transit;
-  const optimalIndoorConc =
-    cOut * INFILTRATION_FACTORS.sealed_windows * PURIFIER_PENETRATION +
-    COOKING_INCREMENTS.lpg_electric;
-  const optimalIndoorDose = (24 - optimalOutdoorHours) * optimalIndoorConc;
-  const optimizedDose = optimalOutdoorDose + optimalIndoorDose;
+  // Optimized Counterfactual Routine (N95 outdoors + Sealed Windows + HEPA purifier indoors)
+  const optimalOutdoorHours = Math.min(outdoorHours, 1.0);
+  const optimalOutdoorConc = cOut * MASK_PENETRATION_FACTORS.n95_kn95.tight_fit * 0.5;
+  const optimalOutdoorMass = optimalOutdoorHours * optimalOutdoorConc * BREATHING_RATES.light_transit;
 
+  const optimalIndoorParams: RoomParameters = {
+    ...indoorParams,
+    hasPurifier: true,
+    ventilationStrategy: 'sealed_windows',
+    cookingFuel: 'lpg_electric',
+  };
+  const optimalIndoorBalance = calculateIndoorMassBalance(cOut, optimalIndoorParams, 24 - optimalOutdoorHours);
+  const optimalIndoorMass = (24 - optimalOutdoorHours) * optimalIndoorBalance.estimatedIndoorConcentration * indoorBreathingRate;
+  const optimizedInhaledMassUg = optimalOutdoorMass + optimalIndoorMass;
+
+  const avoidedInhaledMassUg = Math.max(0, totalInhaledMassUg - optimizedInhaledMassUg);
   const potentialReductionPercent =
-    baselineDose > 0
-      ? Math.max(0, Math.min(95, Math.round(((baselineDose - optimizedDose) / baselineDose) * 100)))
+    totalInhaledMassUg > 0
+      ? Math.max(0, Math.min(95, Math.round((avoidedInhaledMassUg / totalInhaledMassUg) * 100)))
       : 0;
 
   const recommendations: string[] = [];
   if (profile.maskType !== 'n95_kn95' && profile.currentAqi > 100) {
-    recommendations.push('Upgrade to a certified, snug-fitting N95/FFP2 respirator for all outdoor steps.');
+    recommendations.push(
+      'Wear a snug-fitting N95/FFP2 respirator outdoors (typical real-world fit reduces inhaled particles by ~75–90%).'
+    );
   }
   if (!profile.hasPurifier && profile.currentAqi > 150) {
-    recommendations.push('Deploy a clean-room sanctuary with a HEPA purifier or a low-cost DIY box-fan with MERV 13 filter.');
+    recommendations.push(
+      'Establish a bedroom clean room with a HEPA purifier or properly constructed DIY box-fan + MERV 13 filter.'
+    );
   }
   if (profile.ventilationStrategy === 'windows_open' && profile.currentAqi > 100) {
-    recommendations.push('Seal windows and switch to timed ventilation only during peak afternoon dispersion (1 PM – 3 PM).');
+    recommendations.push(
+      'Keep windows sealed during high pollution periods when outdoor air is worse than indoor air.'
+    );
   }
   if (profile.commuteType === 'two_wheeler' || profile.commuteType === 'walk') {
-    recommendations.push('Transition high-smog commutes to closed metro or AC transit to avoid direct roadway particulate.');
+    recommendations.push(
+      'Shift commute to metro transit or closed-cabin vehicles with AC recirculation during severe smog.'
+    );
   }
 
   return {
+    totalInhaledMassUg: Math.round(totalInhaledMassUg * 10) / 10,
+    outdoorInhaledMassUg: Math.round(outdoorInhaledMassUg * 10) / 10,
+    indoorInhaledMassUg: Math.round(indoorInhaledMassUg * 10) / 10,
     baselineDose: Math.round(baselineDose * 10) / 10,
     outdoorDose: Math.round(outdoorDose * 10) / 10,
     indoorDose: Math.round(indoorDose * 10) / 10,
-    indoorConcentration: Math.round(indoorConcentration * 10) / 10,
+    indoorConcentration: indoorBalance.estimatedIndoorConcentration,
+    optimizedInhaledMassUg: Math.round(optimizedInhaledMassUg * 10) / 10,
+    avoidedInhaledMassUg: Math.round(avoidedInhaledMassUg * 10) / 10,
+    potentialReductionPercent,
     naqiCategory: naqiInfo.category,
     healthRiskTier,
     vulnerabilityAlert: hasVulnerable && profile.currentAqi > 150,
-    optimizedDose: Math.round(optimizedDose * 10) / 10,
-    potentialReductionPercent,
     recommendedInterventions: recommendations,
+    uncertaintyRating: 'Configurable Estimate',
+    dataProvenance:
+      'Modeled via Open-Meteo ambient estimates, EPA minute ventilation rates, and indoor single-zone mass balance.',
   };
 }
 
@@ -203,32 +341,46 @@ export function evaluateWhatIf(
   };
   const hypotheticalResult = calculateDailyExposure(hypotheticalProfile);
 
-  const originalDose = currentResult.baselineDose;
-  const newDose = hypotheticalResult.baselineDose;
-  const doseDifference = Math.round((originalDose - newDose) * 10) / 10;
+  const originalMass = currentResult.totalInhaledMassUg;
+  const newMass = hypotheticalResult.totalInhaledMassUg;
+  const avoidedMass = Math.round((originalMass - newMass) * 10) / 10;
   const doseReductionPercent =
-    originalDose > 0
-      ? Math.round(((originalDose - newDose) / originalDose) * 100)
+    originalMass > 0
+      ? Math.round(((originalMass - newMass) / originalMass) * 100)
       : 0;
+
+  const assumptions: string[] = [
+    `Breathing rate: ${BREATHING_RATES.moderate_commute} m³/h for active commute, ${BREATHING_RATES.sedentary_indoor} m³/h indoor sedentary`,
+    hypotheticalProfile.maskType === 'n95_kn95'
+      ? 'Assumes typical snug-fitting N95 respirator (accounting for typical 15–20% face seal leakage)'
+      : 'Cloth / surgical mask offers partial 20–30% filtration',
+    hypotheticalProfile.hasPurifier
+      ? 'Indoor purifier assumes standard ~250 m³/h CADR in closed room'
+      : 'Natural infiltration without mechanical air filtration',
+  ];
 
   let verdict = '';
   if (doseReductionPercent > 40) {
-    verdict = `Major protection gain: eliminates ~${doseReductionPercent}% of your daily inhaled pollutant dose.`;
+    verdict = `Substantial reduction: reduces estimated daily inhaled PM2.5 mass by ~${doseReductionPercent}% (approx ${Math.abs(avoidedMass)} µg avoided).`;
   } else if (doseReductionPercent > 15) {
-    verdict = `Substantial reduction: lowers daily exposure dose by ~${doseReductionPercent}%.`;
+    verdict = `Moderate reduction: lowers estimated inhaled PM2.5 mass by ~${doseReductionPercent}% (~${Math.abs(avoidedMass)} µg avoided).`;
   } else if (doseReductionPercent > 0) {
-    verdict = `Moderate reduction: lowers daily exposure by ~${doseReductionPercent}%.`;
+    verdict = `Minor reduction: lowers estimated intake by ~${doseReductionPercent}%.`;
   } else if (doseReductionPercent < 0) {
-    verdict = `Warning: Increases exposure dose by ~${Math.abs(doseReductionPercent)}%.`;
+    verdict = `Warning: Increases estimated inhaled particulate intake by ~${Math.abs(doseReductionPercent)}%.`;
   } else {
-    verdict = 'No measurable change in estimated exposure.';
+    verdict = 'No measurable change in estimated intake under current parameters.';
   }
 
   return {
-    originalDose,
-    newDose,
-    doseDifference,
+    originalDose: currentResult.baselineDose,
+    newDose: hypotheticalResult.baselineDose,
+    doseDifference: Math.round((currentResult.baselineDose - hypotheticalResult.baselineDose) * 10) / 10,
     doseReductionPercent,
+    originalMassUg: originalMass,
+    newMassUg: newMass,
+    avoidedMassUg: avoidedMass,
     verdict,
+    assumptions,
   };
 }

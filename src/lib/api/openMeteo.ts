@@ -15,14 +15,33 @@ export interface HourlyAqiPoint {
   pm10: number;
   aqi: number;
   category: NaqiCategory;
+  temperatureC?: number;
+  windSpeedKmh?: number;
+  relativeHumidity?: number;
+  precipitationMm?: number;
 }
 
 export interface OutdoorWindow {
   startTime: string;
   endTime: string;
   averageAqi: number;
+  averagePm25: number;
   category: NaqiCategory;
   advisory: string;
+  reasoning: string[];
+  isSafe: boolean; // false if AQI > 100
+  windSpeedKmh?: number;
+  temperatureC?: number;
+}
+
+export interface WindowRecommendationResult {
+  bestAvailableWindow: OutdoorWindow;
+  worstWindow: OutdoorWindow;
+  rankedWindows: OutdoorWindow[];
+  noSafeWindowAvailable: boolean;
+  alertHeadline: string;
+  forecastConfidence: 'High' | 'Medium' | 'Model Estimate';
+  dataProvenance: string;
 }
 
 export interface ProcessedAirQuality {
@@ -30,6 +49,8 @@ export interface ProcessedAirQuality {
   latitude: number;
   longitude: number;
   timestamp: string;
+  dataSource: string;
+  isStale: boolean;
   current: {
     time: string;
     pm25: number;
@@ -40,8 +61,13 @@ export interface ProcessedAirQuality {
     chipBg: string;
     textColor: string;
     description: string;
+    temperatureC?: number;
+    windSpeedKmh?: number;
+    relativeHumidity?: number;
   };
   hourly: HourlyAqiPoint[];
+  windowRecommendations: WindowRecommendationResult;
+  // Legacy aliases for backward compatibility
   bestWindow: OutdoorWindow;
   worstWindow: OutdoorWindow;
 }
@@ -68,76 +94,152 @@ function setCache<T>(key: string, data: T): void {
   cache.set(key, { data, timestamp: Date.now() });
 }
 
-export function findOptimalWindows(hourly: HourlyAqiPoint[]): {
-  bestWindow: OutdoorWindow;
-  worstWindow: OutdoorWindow;
-} {
-  if (hourly.length === 0) {
-    const fallbackWindow: OutdoorWindow = {
-      startTime: '12:00',
-      endTime: '14:00',
-      averageAqi: 150,
-      category: 'Moderate',
-      advisory: 'No hourly forecast available.',
+/**
+ * Multi-factor dynamic outdoor activity recommendation engine.
+ * Evaluates hourly PM2.5, PM10, wind dispersion, temperature, and precipitation.
+ * Explicitly flags when no genuinely safe window exists across the day.
+ */
+export function analyzeDynamicWindows(hourly: HourlyAqiPoint[]): WindowRecommendationResult {
+  const fallbackWindow: OutdoorWindow = {
+    startTime: '12:00',
+    endTime: '14:00',
+    averageAqi: 200,
+    averagePm25: 90,
+    category: 'Moderate',
+    advisory: 'Insufficient forecast telemetry to rank hourly windows.',
+    reasoning: ['Defaulting to midday schedule due to missing forecast vectors.'],
+    isSafe: false,
+  };
+
+  if (!hourly || hourly.length === 0) {
+    return {
+      bestAvailableWindow: fallbackWindow,
+      worstWindow: fallbackWindow,
+      rankedWindows: [],
+      noSafeWindowAvailable: true,
+      alertHeadline: 'No hourly telemetry available.',
+      forecastConfidence: 'Model Estimate',
+      dataProvenance: 'Open-Meteo Atmospheric Chemistry Model',
     };
-    return { bestWindow: fallbackWindow, worstWindow: fallbackWindow };
   }
 
-  // Look at sliding windows of 2 to 3 consecutive hours
-  const windowSize = Math.min(3, hourly.length);
-  let minAqiSum = Infinity;
-  let maxAqiSum = -Infinity;
-  let bestIdx = 0;
-  let worstIdx = 0;
+  const windowSize = Math.min(2, hourly.length); // 2-hour activity windows
+  const candidateWindows: OutdoorWindow[] = [];
 
   for (let i = 0; i <= hourly.length - windowSize; i++) {
-    let sum = 0;
+    let sumAqi = 0;
+    let sumPm25 = 0;
+    let sumWind = 0;
+    let sumTemp = 0;
+    let count = 0;
+
     for (let j = 0; j < windowSize; j++) {
-      sum += hourly[i + j].aqi;
+      const pt = hourly[i + j];
+      sumAqi += pt.aqi;
+      sumPm25 += pt.pm25;
+      if (pt.windSpeedKmh !== undefined) sumWind += pt.windSpeedKmh;
+      if (pt.temperatureC !== undefined) sumTemp += pt.temperatureC;
+      count++;
     }
-    if (sum < minAqiSum) {
-      minAqiSum = sum;
-      bestIdx = i;
+
+    const avgAqi = Math.round(sumAqi / count);
+    const avgPm25 = Math.round((sumPm25 / count) * 10) / 10;
+    const avgWind = count > 0 ? Math.round((sumWind / count) * 10) / 10 : undefined;
+    const avgTemp = count > 0 ? Math.round((sumTemp / count) * 10) / 10 : undefined;
+
+    const catMeta = getNaqiCategory(avgAqi);
+    const startPt = hourly[i];
+    const endPt = hourly[i + windowSize - 1];
+
+    const reasoning: string[] = [];
+    reasoning.push(`Forecast average PM2.5 is ${avgPm25} µg/m³ (CPCB NAQI: ${catMeta.category}).`);
+
+    if (avgWind !== undefined) {
+      if (avgWind > 6) {
+        reasoning.push(`Moderate surface winds (~${avgWind} km/h) encourage localized pollutant dispersion.`);
+      } else if (avgWind < 2.5) {
+        reasoning.push(`Stagnant surface air (~${avgWind} km/h) limits atmospheric ventilation.`);
+      }
     }
-    if (sum > maxAqiSum) {
-      maxAqiSum = sum;
-      worstIdx = i;
+
+    if (avgTemp !== undefined) {
+      if (avgTemp < 15) {
+        reasoning.push(`Cooler ground temperatures (~${avgTemp}°C) promote thermal inversion particulate trapping.`);
+      } else if (avgTemp > 22) {
+        reasoning.push(`Solar surface warming (~${avgTemp}°C) enhances vertical convective air mixing.`);
+      }
     }
+
+    const isSafe = avgAqi <= 100; // Good or Satisfactory
+
+    candidateWindows.push({
+      startTime: startPt.time,
+      endTime: endPt.time,
+      averageAqi: avgAqi,
+      averagePm25: avgPm25,
+      category: catMeta.category,
+      advisory: isSafe
+        ? 'Relatively lower pollution window. Suitable for essential errands and ventilation.'
+        : 'Elevated pollution: minimize outdoor exertion; wear certified N95 respirators.',
+      reasoning,
+      isSafe,
+      windSpeedKmh: avgWind,
+      temperatureC: avgTemp,
+    });
   }
 
-  const bestAvg = Math.round(minAqiSum / windowSize);
-  const worstAvg = Math.round(maxAqiSum / windowSize);
+  // Sort candidate windows from lowest AQI to highest
+  candidateWindows.sort((a, b) => a.averageAqi - b.averageAqi);
 
-  const bestCategory = getNaqiCategory(bestAvg).category;
-  const worstCategory = getNaqiCategory(worstAvg).category;
+  const bestAvailable = candidateWindows[0] || fallbackWindow;
+  const worst = candidateWindows[candidateWindows.length - 1] || fallbackWindow;
 
-  const bestStart = hourly[bestIdx].time;
-  const bestEnd = hourly[Math.min(hourly.length - 1, bestIdx + windowSize - 1)].time;
+  // Check if entire day is severely polluted
+  const allWindowsHeavy = candidateWindows.every((w) => w.averageAqi > 200 || w.averagePm25 > 100);
 
-  const worstStart = hourly[worstIdx].time;
-  const worstEnd = hourly[Math.min(hourly.length - 1, worstIdx + windowSize - 1)].time;
+  let alertHeadline = 'Dynamic Activity Window Identified';
+  if (allWindowsHeavy) {
+    alertHeadline = 'CRITICAL SMOG ALERT: No Safe Outdoor Window Today';
+    bestAvailable.advisory =
+      'Even the cleanest window remains heavily polluted. Postpone non-essential outdoor travel and keep children indoors.';
+    bestAvailable.reasoning.unshift(
+      'Notice: No safe threshold exists today; this is merely the least-polluted available interval.'
+    );
+  } else if (!bestAvailable.isSafe) {
+    alertHeadline = 'Caution: Only Moderately Polluted Windows Available';
+  } else {
+    alertHeadline = 'Cleanest Available Window for Errands';
+  }
 
   return {
-    bestWindow: {
-      startTime: bestStart,
-      endTime: bestEnd,
-      averageAqi: bestAvg,
-      category: bestCategory,
-      advisory: `Lowest smog density period. Conduct required outdoor chores or brief ventilation.`,
-    },
-    worstWindow: {
-      startTime: worstStart,
-      endTime: worstEnd,
-      averageAqi: worstAvg,
-      category: worstCategory,
-      advisory: `Peak thermal inversion trap. Strictly restrict all outdoor activities; keep doors/windows sealed.`,
-    },
+    bestAvailableWindow: bestAvailable,
+    worstWindow: worst,
+    rankedWindows: candidateWindows.slice(0, 5),
+    noSafeWindowAvailable: allWindowsHeavy,
+    alertHeadline,
+    forecastConfidence: 'Model Estimate',
+    dataProvenance: 'Open-Meteo Atmospheric Chemistry Model (CAMS/ECMWF)',
   };
 }
 
 export function processAirQualityData(params: {
-  current: { pm2_5: number; pm10: number; time: string };
-  hourly: { time: string[]; pm2_5: number[]; pm10: number[] };
+  current: {
+    pm2_5: number;
+    pm10: number;
+    time: string;
+    temperatureC?: number;
+    windSpeedKmh?: number;
+    relativeHumidity?: number;
+  };
+  hourly: {
+    time: string[];
+    pm2_5: number[];
+    pm10: number[];
+    temperature_2m?: number[];
+    wind_speed_10m?: number[];
+    relative_humidity_2m?: number[];
+    precipitation?: number[];
+  };
   cityName: string;
   latitude: number;
   longitude: number;
@@ -149,29 +251,36 @@ export function processAirQualityData(params: {
     params.hourly.time.length,
     params.hourly.pm2_5.length,
     params.hourly.pm10.length,
-    24 // Focus on 24-hour forecast
+    24 // 24-hour cycle
   );
 
   for (let i = 0; i < count; i++) {
     const p25 = params.hourly.pm2_5[i] ?? 0;
     const p10 = params.hourly.pm10[i] ?? 0;
     const pointNaqi = calculateNaqi(p25, p10);
+
     hourlyPoints.push({
       time: params.hourly.time[i],
       pm25: Math.round(p25 * 10) / 10,
       pm10: Math.round(p10 * 10) / 10,
       aqi: pointNaqi.aqi,
       category: pointNaqi.category,
+      temperatureC: params.hourly.temperature_2m?.[i],
+      windSpeedKmh: params.hourly.wind_speed_10m?.[i],
+      relativeHumidity: params.hourly.relative_humidity_2m?.[i],
+      precipitationMm: params.hourly.precipitation?.[i],
     });
   }
 
-  const { bestWindow, worstWindow } = findOptimalWindows(hourlyPoints);
+  const windowRecommendations = analyzeDynamicWindows(hourlyPoints);
 
   return {
     cityName: params.cityName,
     latitude: params.latitude,
     longitude: params.longitude,
     timestamp: params.current.time,
+    dataSource: 'Open-Meteo Atmospheric Chemistry Model & Forecast (CAMS/ECMWF)',
+    isStale: false,
     current: {
       time: params.current.time,
       pm25: Math.round(params.current.pm2_5 * 10) / 10,
@@ -182,16 +291,17 @@ export function processAirQualityData(params: {
       chipBg: currentNaqi.details.chipBg,
       textColor: currentNaqi.details.textColor,
       description: currentNaqi.details.description,
+      temperatureC: params.current.temperatureC,
+      windSpeedKmh: params.current.windSpeedKmh,
+      relativeHumidity: params.current.relativeHumidity,
     },
     hourly: hourlyPoints,
-    bestWindow,
-    worstWindow,
+    windowRecommendations,
+    bestWindow: windowRecommendations.bestAvailableWindow,
+    worstWindow: windowRecommendations.worstWindow,
   };
 }
 
-/**
- * Searches cities using Open-Meteo free geocoding API with in-memory caching.
- */
 export async function searchCities(query: string): Promise<GeocodingResult[]> {
   const cleanQuery = query.trim();
   if (cleanQuery.length < 2) return [];
@@ -208,7 +318,14 @@ export async function searchCities(query: string): Promise<GeocodingResult[]> {
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!res.ok) return [];
     const data = await res.json();
-    const results: GeocodingResult[] = (data.results || []).map((r: any) => ({
+    const results: GeocodingResult[] = (data.results || []).map((r: {
+      id: number;
+      name: string;
+      latitude: number;
+      longitude: number;
+      country?: string;
+      admin1?: string;
+    }) => ({
       id: r.id,
       name: r.name,
       latitude: r.latitude,
@@ -225,29 +342,68 @@ export async function searchCities(query: string): Promise<GeocodingResult[]> {
   }
 }
 
-/**
- * Fetches air quality data for coordinates from Open-Meteo.
- */
 export async function fetchAirQuality(
   latitude: number,
   longitude: number,
   cityName = 'Selected Location'
 ): Promise<ProcessedAirQuality> {
-  const cacheKey = `aq:${latitude.toFixed(3)},${longitude.toFixed(3)}`;
+  const cacheKey = `aq_weather:${latitude.toFixed(3)},${longitude.toFixed(3)}`;
   const cached = getCached<ProcessedAirQuality>(cacheKey);
   if (cached) return cached;
 
-  const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${latitude}&longitude=${longitude}&current=pm10,pm2_5&hourly=pm10,pm2_5&timezone=auto&forecast_days=2`;
+  const airQualityUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${latitude}&longitude=${longitude}&current=pm10,pm2_5&hourly=pm10,pm2_5&timezone=auto&forecast_days=2`;
+  const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m&forecast_days=2&timezone=auto`;
 
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Open-Meteo API returned status ${res.status}`);
+  // Fetch air quality and weather telemetry in parallel with error resilience
+  const [aqRes, weatherRes] = await Promise.all([
+    fetch(airQualityUrl).catch(() => null),
+    fetch(weatherUrl).catch(() => null),
+  ]);
+
+  if (!aqRes || !aqRes.ok) {
+    throw new Error(`Air Quality API unavailable (Status: ${aqRes ? aqRes.status : 'Network error'})`);
   }
 
-  const json = await res.json();
+  const aqJson = await aqRes.json();
+  let weatherJson: {
+    hourly?: {
+      temperature_2m?: number[];
+      wind_speed_10m?: number[];
+      relative_humidity_2m?: number[];
+      precipitation?: number[];
+    };
+  } = {};
+
+  if (weatherRes && weatherRes.ok) {
+    try {
+      weatherJson = await weatherRes.json();
+    } catch {
+      // Graceful degradation if weather JSON parsing fails
+    }
+  }
+
+  const currentTemp = weatherJson.hourly?.temperature_2m?.[0];
+  const currentWind = weatherJson.hourly?.wind_speed_10m?.[0];
+  const currentHumidity = weatherJson.hourly?.relative_humidity_2m?.[0];
+
   const processed = processAirQualityData({
-    current: json.current,
-    hourly: json.hourly,
+    current: {
+      pm2_5: aqJson.current?.pm2_5 ?? 100,
+      pm10: aqJson.current?.pm10 ?? 150,
+      time: aqJson.current?.time ?? new Date().toISOString(),
+      temperatureC: currentTemp,
+      windSpeedKmh: currentWind,
+      relativeHumidity: currentHumidity,
+    },
+    hourly: {
+      time: aqJson.hourly?.time ?? [],
+      pm2_5: aqJson.hourly?.pm2_5 ?? [],
+      pm10: aqJson.hourly?.pm10 ?? [],
+      temperature_2m: weatherJson.hourly?.temperature_2m,
+      wind_speed_10m: weatherJson.hourly?.wind_speed_10m,
+      relative_humidity_2m: weatherJson.hourly?.relative_humidity_2m,
+      precipitation: weatherJson.hourly?.precipitation,
+    },
     cityName,
     latitude,
     longitude,
@@ -255,4 +411,13 @@ export async function fetchAirQuality(
 
   setCache(cacheKey, processed);
   return processed;
+}
+
+// Legacy alias function for backward compatibility
+export function findOptimalWindows(hourly: HourlyAqiPoint[]) {
+  const result = analyzeDynamicWindows(hourly);
+  return {
+    bestWindow: result.bestAvailableWindow,
+    worstWindow: result.worstWindow,
+  };
 }

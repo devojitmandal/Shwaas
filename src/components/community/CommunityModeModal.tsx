@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Printer, Share2, Users, Building, GraduationCap, Check } from 'lucide-react';
+import { X, Printer, Share2, Users, Building, GraduationCap, MapPin, Check } from 'lucide-react';
 
 interface CommunityModeModalProps {
   isOpen: boolean;
@@ -26,7 +26,12 @@ export default function CommunityModeModal({
   };
 
   const handleShare = async () => {
-    const text = `AirWise Community Clean Air Action Plan for ${cityName} (Current NAQI: ${currentAqi})\n\n1. Stop open waste/leaf burning on premises.\n2. Provide electric room heaters to night security guards to replace open fires.\n3. Cancel morning outdoor assemblies and move sports to 1 PM-3 PM.\n4. Wet-mop common corridors instead of dry sweeping.\n\nGenerated with AirWise Urban Air Quality Assistant.`;
+    const text = `AirWise Community Clean Air Action Plan for ${cityName} (Current NAQI: ${currentAqi})\n\n` +
+      `🏢 1. Residential Societies: Ban open waste burning, distribute electric room heaters to night security staff, and mandate wet-mopping.\n` +
+      `🏫 2. Schools: Postpone outdoor morning sports to afternoon solar dispersion window; seal classroom windows.\n` +
+      `🏘️ 3. Communities: Report illegal waste burning to municipal helpline and establish local metro-shuttle carpools.\n\n` +
+      `Generated with AirWise Urban Air Quality Assistant • airwise.in`;
+
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -50,10 +55,10 @@ export default function CommunityModeModal({
             </div>
             <div>
               <h2 id="community-modal-title" className="text-lg font-serif font-bold text-slate-900">
-                Community Smog Action Plan & Checklist
+                Community Smog Action Plan & Checklists
               </h2>
               <p className="text-xs text-slate-500">
-                Shareable and printable protocols for Apartment RWAs, Societies, and Schools in {cityName}.
+                Shareable and printable protocols for Apartment RWAs, Schools, and Neighborhoods in {cityName}.
               </p>
             </div>
           </div>
@@ -69,7 +74,7 @@ export default function CommunityModeModal({
 
         {/* Action Toolbar */}
         <div className="px-6 py-3 bg-slate-100/70 border-b border-slate-200/60 flex items-center justify-between flex-wrap gap-2 print:hidden">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <button
               onClick={() => setActiveTab('rwa')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
@@ -79,7 +84,7 @@ export default function CommunityModeModal({
               }`}
             >
               <Building className="w-3.5 h-3.5" />
-              <span>Apartments & RWAs</span>
+              <span>1. Residential Societies (RWAs)</span>
             </button>
             <button
               onClick={() => setActiveTab('schools')}
@@ -90,7 +95,18 @@ export default function CommunityModeModal({
               }`}
             >
               <GraduationCap className="w-3.5 h-3.5" />
-              <span>Schools & Daycares</span>
+              <span>2. Schools & Daycares</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('ward')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                activeTab === 'ward'
+                  ? 'bg-teal-800 text-white shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-200/60'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>3. Local Communities</span>
             </button>
           </div>
 
@@ -104,7 +120,7 @@ export default function CommunityModeModal({
               ) : (
                 <Share2 className="w-3.5 h-3.5 text-teal-800" />
               )}
-              <span>{copied ? 'Copied to Clipboard!' : 'Share Text'}</span>
+              <span>{copied ? 'Copied' : 'Share Summary'}</span>
             </button>
             <button
               onClick={handlePrint}
@@ -121,50 +137,50 @@ export default function CommunityModeModal({
           {/* Print Header */}
           <div className="hidden print:block pb-4 border-b border-slate-300">
             <h1 className="text-2xl font-serif font-bold text-slate-900">
-              AirWise Community Clean Air Checklist — {cityName}
+              AirWise Community Smog Mitigation Action Plan — {cityName}
             </h1>
             <p className="text-xs text-slate-600 mt-1">
               National AQI Alert Level: {currentAqi} • Issued for Community Self-Defense & Emission Abatement
             </p>
           </div>
 
-          {activeTab === 'rwa' ? (
+          {activeTab === 'rwa' && (
             <div className="space-y-4">
               <div className="border-l-4 border-teal-800 pl-4 py-1">
                 <h3 className="text-base font-serif font-bold text-slate-900">
-                  Residential Welfare Association (RWA) & Society Protocol
+                  Residential Societies & RWA Action Protocol
                 </h3>
                 <p className="text-xs text-slate-600">
-                  Collective actions apartment complexes and gated societies can implement within 24 hours.
+                  Immediate operational guidelines for building management committees and apartment complexes.
                 </p>
               </div>
 
               <div className="space-y-3">
                 {[
                   {
-                    title: 'Supply Electric Heaters to Night Security Guards',
-                    desc: 'Issue radiant or oil-filled electric room heaters to all guard booths and night patrol staff. Strictly eliminate open drum fires, wood scraps, and trash burning on society perimeter.',
-                    impact: 'Eliminates localized ground-level toxic smoke spikes of +300 µg/m³ at building gates.',
+                    title: 'Supply Electric Room Heaters to Night Security Guards',
+                    desc: 'Issue radiant or oil-filled electric heaters to all guard booths and night patrol staff. Strictly eliminate open drum fires, wood scrap burning, and dried leaf disposal fires.',
+                    impact: 'Eliminates localized ground-level toxic smoke spikes of +300 µg/m³ at society entry gates.',
                   },
                   {
-                    title: 'Enforce Wet-Mopping of Society Driveways & Common Corridors',
-                    desc: 'Ban dry brooms and leaf-blowers which aerosolize settled respirable toxic dust back into the air. Instruct housekeeping staff to use damp mops or water mist sweeping.',
+                    title: 'Enforce Wet-Mopping of Society Driveways & Common Areas',
+                    desc: 'Ban dry brooms and leaf blowers which aerosolize settled respirable toxic dust back into the air. Instruct housekeeping staff to use damp mops or water mist sweeping.',
                     impact: 'Reduces re-suspended road and walkway PM10 dust by up to 60%.',
+                  },
+                  {
+                    title: 'Protect Outdoor Workers with Certified N95 Respirators',
+                    desc: 'Issue certified N95/FFP2 masks to society gardeners, sanitation workers, and security personnel during peak smog alerts.',
+                    impact: 'Lowers occupational particulate inhalation burden by ~75–85%.',
+                  },
+                  {
+                    title: 'Restrict Unnecessary Vehicle Idling Inside Society Gates',
+                    desc: 'Enforce strict 60-second engine cut-off rules for delivery vans, taxis, and resident vehicles waiting at drop-off zones.',
+                    impact: 'Reduces ground-level vehicle exhaust plumes in enclosed residential basements and lobbies.',
                   },
                   {
                     title: 'Establish a Centralized "Clean-Air Room" in Club House',
                     desc: 'Designate the society library, boardroom, or community room as an air-conditioned, HEPA-purified sanctuary for senior residents, asthmatics, and children during peak morning smog.',
-                    impact: 'Provides safe refuge during severe winter inversion spikes.',
-                  },
-                  {
-                    title: 'Restrict Non-Emergency Diesel Generators (DG Sets)',
-                    desc: 'Coordinate with local power utility to minimize grid tripping. Prohibit routine maintenance load-testing of heavy diesel generators during severe smog days.',
-                    impact: 'Prevents heavy sulfur and black carbon plumes in high-density residential towers.',
-                  },
-                  {
-                    title: 'Society Metro Shuttle & Carpool Clusters',
-                    desc: 'Facilitate shared electric auto-rickshaws or society shuttles to the nearest metro station to reduce individual cold-engine car and two-wheeler commutes.',
-                    impact: 'Lowers vehicular trip emissions and reduces roadway corridor exposure.',
+                    impact: 'Provides clean air refuge for vulnerable residents without private home air purifiers.',
                   },
                 ].map((item, idx) => (
                   <div key={idx} className="p-4 rounded-xl border border-slate-200/90 bg-slate-50/50 flex items-start gap-3">
@@ -180,7 +196,9 @@ export default function CommunityModeModal({
                 ))}
               </div>
             </div>
-          ) : (
+          )}
+
+          {activeTab === 'schools' && (
             <div className="space-y-4">
               <div className="border-l-4 border-teal-800 pl-4 py-1">
                 <h3 className="text-base font-serif font-bold text-slate-900">
@@ -196,22 +214,71 @@ export default function CommunityModeModal({
                   {
                     title: 'Cancel Morning Outdoor Assemblies & Sports',
                     desc: 'Move morning assemblies, physical training (PT), and sports into indoor auditoriums or postpone to afternoon (1:00 PM – 3:00 PM) when atmospheric dispersion is highest.',
-                    impact: 'Protects children from exercising during peak early morning thermal inversions.',
+                    impact: 'Protects children from strenuous aerobic breathing during peak early morning thermal inversions.',
                   },
                   {
-                    title: 'Mandate N95 / KF94 Masks for School Bus Transit',
-                    desc: 'Cloth masks fail to seal against fine PM2.5. Mandate certified high-filtration respirators for bus conductors and students during morning transit in traffic corridors.',
-                    impact: 'Reduces commute-inhaled roadway particle dose by up to 90%.',
+                    title: 'Indoor Activity Alternatives',
+                    desc: 'Replace outdoor running games with yoga, table tennis, or indoor board games in rooms with closed windows.',
+                    impact: 'Keeps minute ventilation rate lower (~10 L/min vs >35 L/min during heavy running).',
                   },
                   {
-                    title: 'Seal Classrooms & Upgrade Infirmary with True HEPA Cleaners',
-                    desc: 'Keep classroom windows latched during morning hours. Install continuous HEPA filtration units in the school medical infirmary and nursery wings.',
-                    impact: 'Maintains indoor classroom PM2.5 at safe baselines.',
+                    title: 'Parent Smog Notifications & Mask Guidance',
+                    desc: 'Send daily morning air quality alerts via parent portal, recommending snug-fitting N95 masks for school bus commuters.',
+                    impact: 'Empowers parents to equip children with verified high-filtration respirators.',
                   },
                   {
-                    title: 'Strict No-Idling Zones for School Buses & Parent Vehicles',
-                    desc: 'Prohibit diesel buses and private cars from idling outside school gates during morning drop-off and afternoon dispersal.',
-                    impact: 'Eliminates concentrated tailpipe exhaust clouds at school gates.',
+                    title: 'Special Protections for Children with Asthma',
+                    desc: 'Ensure school infirmaries stock backup inhalers, nebulizers, and a running HEPA air purifier unit.',
+                    impact: 'Provides immediate clinical stabilization for students experiencing smog-induced wheezing.',
+                  },
+                ].map((item, idx) => (
+                  <div key={idx} className="p-4 rounded-xl border border-slate-200/90 bg-slate-50/50 flex items-start gap-3">
+                    <div className="mt-0.5 w-4 h-4 rounded border-2 border-slate-400 flex items-center justify-center shrink-0 print:border-black" />
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">{item.title}</h4>
+                      <p className="text-xs text-slate-700 mt-1 leading-relaxed">{item.desc}</p>
+                      <span className="inline-block mt-1 text-[11px] font-semibold text-teal-800 print:text-black">
+                        Impact: {item.impact}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'ward' && (
+            <div className="space-y-4">
+              <div className="border-l-4 border-teal-800 pl-4 py-1">
+                <h3 className="text-base font-serif font-bold text-slate-900">
+                  Local Community & Neighborhood Ward Protocol
+                </h3>
+                <p className="text-xs text-slate-600">
+                  Civic actions neighbors can coordinate across wards and municipal zones.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  {
+                    title: 'Community Reporting of Illegal Waste Burning Incidents',
+                    desc: 'Encourage residents to photograph and report open municipal garbage or leaf burning directly to the municipal emergency helpline (e.g., CPCB Sameer App / MCD 311).',
+                    impact: 'Accelerates civic enforcement against high-emission open combustion.',
+                  },
+                  {
+                    title: 'Organize Neighborhood Carpooling & Metro Feeder Shuttles',
+                    desc: 'Pool daily commutes to local metro stations using shared e-rickshaws or pooled rides rather than individual cold-start car trips.',
+                    impact: 'Reduces private vehicle trips during heavy congestion hours.',
+                  },
+                  {
+                    title: 'Support Clean Heating for Street Vendors & Daily Wage Workers',
+                    desc: 'Partner with local merchant associations to provide sheltered warming kiosks with electric heating for evening market vendors.',
+                    impact: 'Eliminates open street bonfire smog plumes in crowded shopping markets.',
+                  },
+                  {
+                    title: 'Public Smog Awareness & Dispelling Misconceptions',
+                    desc: 'Share verified science debunking myths (e.g. wet cloth masks or simple houseplants do not eliminate respirable fine PM2.5).',
+                    impact: 'Encourages evidence-based community self-defense.',
                   },
                 ].map((item, idx) => (
                   <div key={idx} className="p-4 rounded-xl border border-slate-200/90 bg-slate-50/50 flex items-start gap-3">
@@ -230,9 +297,9 @@ export default function CommunityModeModal({
           )}
 
           {/* Footer Note */}
-          <div className="pt-4 border-t border-slate-200 text-[11px] text-slate-500 flex items-center justify-between">
+          <div className="pt-4 border-t border-slate-200 text-[11px] text-slate-500 flex items-center justify-between flex-wrap gap-2">
             <span>AirWise Urban Clean Air Guard • Hack2Skill Urban Air Quality Challenge</span>
-            <span>Document: Community Checklist (Printable)</span>
+            <span>Document: Community Checklist (Printable) • Not a replacement for municipal regulation</span>
           </div>
         </div>
       </div>

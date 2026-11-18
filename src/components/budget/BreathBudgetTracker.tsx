@@ -16,6 +16,7 @@ import {
 interface BreathBudgetTrackerProps {
   currentAqi: number;
   pm25: number;
+  hourlyPm25Forecast?: number[];
   hasPurifier: boolean;
   maskType: MaskType;
   commuteType: CommuteType;
@@ -24,36 +25,40 @@ interface BreathBudgetTrackerProps {
 export default function BreathBudgetTracker({
   currentAqi,
   pm25,
+  hourlyPm25Forecast = [],
   hasPurifier,
   maskType,
   commuteType,
 }: BreathBudgetTrackerProps) {
-  // Pre-populated realistic daily routine
+  // Configured realistic daily routine with scheduled hour
   const [activities, setActivities] = useState<BudgetActivity[]>([
     {
       id: 'act-1',
       name: 'Morning Office / School Transit',
       timeOfDay: '08:30 AM',
-      durationMinutes: 40,
-      isPeakInversion: true,
+      scheduledHour: 8,
+      durationMinutes: 45,
+      intensity: 'moderate_commute',
       commuteType,
       maskType,
     },
     {
       id: 'act-2',
       name: 'Evening Market / Errands Walk',
-      timeOfDay: '06:15 PM',
+      timeOfDay: '06:30 PM',
+      scheduledHour: 18,
       durationMinutes: 30,
-      isPeakInversion: true,
+      intensity: 'moderate_commute',
       commuteType: 'walk',
       maskType: 'none',
     },
     {
       id: 'act-3',
-      name: 'Indoor Family Time & Night Sleep',
+      name: 'Indoor Clean-Room Rest & Night Sleep',
       timeOfDay: '10:00 PM',
+      scheduledHour: 22,
       durationMinutes: 480,
-      isPeakInversion: false,
+      intensity: 'sleep_rest',
       isIndoor: true,
       hasPurifier,
     },
@@ -61,14 +66,15 @@ export default function BreathBudgetTracker({
 
   const [newActName, setNewActName] = useState('');
   const [newActDuration, setNewActDuration] = useState(30);
+  const [newActHour, setNewActHour] = useState(13); // default to afternoon
   const [newActType, setNewActType] = useState<'walk' | 'two_wheeler' | 'metro'>('walk');
-  const newActMask: MaskType = 'none';
   const [isAdding, setIsAdding] = useState(false);
 
-  // Compute live budget
+  // Compute live budget using scientific mass-balance engine
   const budget = calculateBreathBudget({
     currentAqi,
-    pm25,
+    currentPm25: pm25,
+    hourlyPm25Forecast,
     hasPurifier,
     maskType,
     activities,
@@ -78,14 +84,16 @@ export default function BreathBudgetTracker({
     e.preventDefault();
     if (!newActName.trim()) return;
 
+    const formattedTime = `${newActHour % 12 || 12}:00 ${newActHour >= 12 ? 'PM' : 'AM'}`;
     const newActivity: BudgetActivity = {
       id: `act-${Date.now()}`,
       name: newActName.trim(),
-      timeOfDay: '01:30 PM',
+      timeOfDay: formattedTime,
+      scheduledHour: newActHour,
       durationMinutes: newActDuration,
-      isPeakInversion: false,
+      intensity: newActType === 'walk' || newActType === 'two_wheeler' ? 'moderate_commute' : 'light_transit',
       commuteType: newActType === 'metro' ? 'metro_bus_transit' : newActType,
-      maskType: newActMask,
+      maskType: 'none',
     };
 
     setActivities([...activities, newActivity]);
@@ -102,7 +110,7 @@ export default function BreathBudgetTracker({
       activities.map((a) => {
         if (a.id === id) {
           const nextMask: MaskType = a.maskType === 'n95_kn95' ? 'none' : 'n95_kn95';
-          return { ...a, maskType: nextMask };
+          return { ...a, maskType: nextMask, maskFit: 'typical_fit' };
         }
         return a;
       })
@@ -120,11 +128,18 @@ export default function BreathBudgetTracker({
     );
   };
 
-  const handleToggleInversion = (id: string) => {
+  const handleShiftToAfternoon = (id: string) => {
     setActivities(
       activities.map((a) => {
         if (a.id === id) {
-          return { ...a, isPeakInversion: !a.isPeakInversion };
+          const isAfternoon = a.scheduledHour >= 12 && a.scheduledHour <= 15;
+          const nextHour = isAfternoon ? 8 : 13;
+          const timeLabel = isAfternoon ? '08:30 AM' : '01:30 PM';
+          return {
+            ...a,
+            scheduledHour: nextHour,
+            timeOfDay: timeLabel,
+          };
         }
         return a;
       })
@@ -141,17 +156,17 @@ export default function BreathBudgetTracker({
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-800">
             <BatteryCharging className="w-4 h-4 text-teal-800" aria-hidden="true" />
-            <span id="breath-budget-heading">Personal Breath Budget</span>
+            <span id="breath-budget-heading">Relative Exposure-Management Score</span>
           </div>
           <h3 className="mt-1 text-2xl font-serif font-bold text-slate-900 tracking-tight">
-            Daily Exposure Allowance & Spending Ledger
+            Daily Breath Budget Ledger
           </h3>
           <p className="mt-1 text-xs text-slate-500 max-w-2xl leading-relaxed">
-            Think of particulate exposure like daily calories. Every high-smog activity spends your breath allowance; N95 masks discount the cost, and running your purifier gives you a clean-air refund.
+            A relative personal exposure index calibrated against the WHO 24-hr guideline benchmark (100 relative points = reference intake of 24 hours at 15 µg/m³).
           </p>
         </div>
 
-        {/* Budget Status Badge */}
+        {/* Status Badge */}
         <div
           role="status"
           className="px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs shrink-0"
@@ -161,23 +176,31 @@ export default function BreathBudgetTracker({
           }}
         >
           <span>{budget.budgetStatus}</span>
-          <span className="opacity-80">({budget.percentageUsed}% Spent)</span>
+          <span className="opacity-80">({budget.percentageOfReferenceIntake}% of Reference)</span>
         </div>
       </div>
 
-      {/* Meter Bar */}
+      {/* Scientific Clarification Box */}
+      <div className="p-3.5 rounded-xl bg-teal-50/70 border border-teal-100 flex items-start gap-2.5 text-xs text-teal-950">
+        <Info className="w-4 h-4 text-teal-800 shrink-0 mt-0.5" aria-hidden="true" />
+        <p className="leading-relaxed">
+          <strong>Decision-Support Notice:</strong> The 100-point Breath Budget is a comparative lifestyle-management score, not a medical safety threshold. Fine particulate matter (PM2.5) has no established safe lower limit. Use this ledger to schedule outdoor routines during cleaner forecast windows and protect indoor breathing air.
+        </p>
+      </div>
+
+      {/* Progress Bar / Scale */}
       <div>
         <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2">
-          <span>Net Points Spent: {budget.netPointsSpent} pts</span>
-          <span className="text-slate-500">Daily Safe Baseline: {budget.dailyAllowancePoints} pts</span>
+          <span>Inhaled Burden: {budget.netPointsSpent} points (~{budget.totalInhaledMassUg} µg PM2.5)</span>
+          <span className="text-slate-500">Reference Benchmark: 100 points (216 µg)</span>
         </div>
 
         <div className="h-4 w-full rounded-full bg-slate-100 overflow-hidden flex relative">
-          {/* Safe 100 pt baseline marker */}
+          {/* Reference baseline marker */}
           <div
-            className="absolute top-0 bottom-0 border-r-2 border-slate-400 z-10"
+            className="absolute top-0 bottom-0 border-r-2 border-slate-500 z-10"
             style={{ left: '50%' }}
-            title="100 Pt Safe Baseline Threshold"
+            title="100 Pt Reference Level"
           />
           <div
             className="h-full transition-all duration-500 rounded-full"
@@ -189,9 +212,9 @@ export default function BreathBudgetTracker({
         </div>
 
         <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
-          <span>0 pts</span>
-          <span className="font-semibold text-slate-700">100 pts (WHO Baseline)</span>
-          <span>200+ pts (Overdraft)</span>
+          <span>0 pts (Clean)</span>
+          <span className="font-semibold text-slate-700">100 pts (WHO 15 µg/m³ Benchmark)</span>
+          <span>200+ pts (Severe Burden)</span>
         </div>
       </div>
 
@@ -199,7 +222,7 @@ export default function BreathBudgetTracker({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-800">
-            Today&apos;s Activity Spending Ledger
+            Daily Activities & Exposure Breakdown
           </h4>
           <button
             type="button"
@@ -224,7 +247,7 @@ export default function BreathBudgetTracker({
               <input
                 id="new-act-name"
                 type="text"
-                placeholder="e.g. Afternoon School Pick-Up"
+                placeholder="e.g. Afternoon School Run"
                 value={newActName}
                 onChange={(e) => setNewActName(e.target.value)}
                 className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md bg-white text-slate-900"
@@ -247,17 +270,33 @@ export default function BreathBudgetTracker({
             </div>
             <div>
               <label htmlFor="new-act-type" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Travel Mode
+                Mode / Type
               </label>
               <select
                 id="new-act-type"
                 value={newActType}
-                onChange={(e) => setNewActType(e.target.value as any)}
+                onChange={(e) => setNewActType(e.target.value as 'walk' | 'two_wheeler' | 'metro')}
                 className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md bg-white text-slate-900"
               >
-                <option value="walk">Walk</option>
-                <option value="two_wheeler">Two-Wheeler</option>
-                <option value="metro">Metro Transit</option>
+                <option value="walk">Walking / Jogging</option>
+                <option value="two_wheeler">Two-Wheeler / Bike</option>
+                <option value="metro">Metro / Closed Bus</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="new-act-hour" className="block text-[11px] font-semibold text-slate-700 mb-1">
+                Time Window
+              </label>
+              <select
+                id="new-act-hour"
+                value={newActHour}
+                onChange={(e) => setNewActHour(parseInt(e.target.value) || 13)}
+                className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md bg-white text-slate-900"
+              >
+                <option value="8">Morning (08:00 AM)</option>
+                <option value="13">Afternoon (01:00 PM - Cleaner)</option>
+                <option value="18">Evening (06:00 PM)</option>
+                <option value="21">Night (09:00 PM)</option>
               </select>
             </div>
             <div className="flex items-end">
@@ -276,6 +315,8 @@ export default function BreathBudgetTracker({
             const act = activities.find((a) => a.id === item.id);
             if (!act) return null;
 
+            const isAfternoon = act.scheduledHour >= 12 && act.scheduledHour <= 15;
+
             return (
               <div
                 key={item.id}
@@ -285,17 +326,17 @@ export default function BreathBudgetTracker({
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-xs text-slate-900">{item.name}</span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-slate-100 text-slate-600">
-                      {item.durationMinutes} min • {item.timeOfDay}
+                      {item.durationMinutes} min • {item.timeOfDay} (PM2.5: {item.appliedConcentrationUgM3} µg/m³)
                     </span>
-                    {act.isPeakInversion && !act.isIndoor && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-sm bg-rose-50 text-rose-800 border border-rose-200">
-                        Peak Inversion Window
+                    {item.mitigatedMassAvoidedUg > 0 && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-sm bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        ~{item.mitigatedMassAvoidedUg} µg Avoided
                       </span>
                     )}
                   </div>
                   <p className="mt-1 text-xs text-slate-500">{item.explanation}</p>
 
-                  {/* Quick Interactivity Toggles for this item */}
+                  {/* Interactivity mitigation toggles */}
                   <div className="mt-2 flex items-center gap-3 text-[11px]">
                     {!act.isIndoor && (
                       <button
@@ -307,23 +348,23 @@ export default function BreathBudgetTracker({
                             : 'text-slate-500 hover:text-slate-800'
                         }`}
                       >
-                        {act.maskType === 'n95_kn95' ? '✓ Wearing N95 (90% off)' : '+ Put on N95 Mask'}
+                        {act.maskType === 'n95_kn95' ? '✓ N95 Fitted (~75–85% off)' : '+ Put on N95 Mask'}
                       </button>
                     )}
 
                     {!act.isIndoor && (
                       <button
                         type="button"
-                        onClick={() => handleToggleInversion(act.id)}
+                        onClick={() => handleShiftToAfternoon(act.id)}
                         className={`underline font-medium transition-colors ${
-                          !act.isPeakInversion
+                          isAfternoon
                             ? 'text-teal-800 hover:text-teal-950'
                             : 'text-slate-500 hover:text-slate-800'
                         }`}
                       >
-                        {act.isPeakInversion
-                          ? 'Shift to 1 PM afternoon'
-                          : '✓ Afternoon Window'}
+                        {isAfternoon
+                          ? '✓ Shifted to 1 PM (Lower Smog)'
+                          : 'Shift to 1 PM Solar Window'}
                       </button>
                     )}
 
@@ -337,7 +378,7 @@ export default function BreathBudgetTracker({
                             : 'text-slate-500 hover:text-slate-800'
                         }`}
                       >
-                        {act.hasPurifier ? '✓ Purifier Active (+Refund)' : '+ Turn on Purifier'}
+                        {act.hasPurifier ? '✓ HEPA Purifier Active' : '+ Turn on HEPA Purifier'}
                       </button>
                     )}
                   </div>
@@ -345,20 +386,12 @@ export default function BreathBudgetTracker({
 
                 <div className="flex items-center gap-4 shrink-0 sm:self-center self-end">
                   <div className="text-right">
-                    {item.pointsRefund > 0 ? (
-                      <div>
-                        <span className="text-xs font-bold text-emerald-700 block">
-                          +{item.pointsRefund} Refund
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          Net: {item.netCost} pts
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-sm font-bold font-mono text-slate-900">
-                        -{item.pointsCost} pts
-                      </span>
-                    )}
+                    <span className="text-sm font-bold font-mono text-slate-900 block">
+                      {item.pointsSpent} pts
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      ~{item.inhaledMassUg} µg intake
+                    </span>
                   </div>
 
                   <button
@@ -374,14 +407,6 @@ export default function BreathBudgetTracker({
             );
           })}
         </div>
-      </div>
-
-      {/* Summary Note */}
-      <div className="pt-2 text-xs text-slate-500 flex items-center gap-2">
-        <Info className="w-3.5 h-3.5 text-teal-800 shrink-0" />
-        <span>
-          <strong>Pro-tip:</strong> Shifting high-exposure morning routines to the 1 PM solar mixing window and deploying bedroom HEPA filtration can recover over 50% of your daily breath allowance.
-        </span>
       </div>
     </section>
   );

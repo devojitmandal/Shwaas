@@ -54,3 +54,13 @@ Configured in `next.config.ts` for all route responses:
 - **No User Database or Accounts:** AirWise does not operate a user database or store session cookies.
 - **Local Storage Isolation:** Household compositions, children/elderly member numbers, and commute types are saved exclusively inside the user's browser `localStorage` (`airwise_household_profile_v1`).
 - **No Personally Identifiable Health Records:** AirWise never asks for names, addresses, phone numbers, or clinical diagnoses. Calculations run purely on generic lifestyle and environmental variables.
+
+---
+
+## 6. Anti-Hallucination Data Flow Boundaries
+
+To ensure absolute scientific and computational fidelity:
+- **Numerical Computation Boundary:** The LLM is strictly prohibited from generating, inventing, or altering numerical exposure figures, particulate concentrations, or AQI indices.
+- **Strict One-Way Information Flow:**
+  $$\text{Open-Meteo Telemetry} \xrightarrow{} \text{Deterministic CPCB NAQI \& Exposure Engine} \xrightarrow{} \text{Verified Numbers Passed to Prompt} \xrightarrow{} \text{Gemini Synthesizes Text Plan} \xrightarrow{} \text{Zod Schema Validation}$$
+- **Fail-Safe Deterministic Fallback:** If the Gemini API is unreachable, times out, rate-limits, or emits an unparsable schema, the application seamlessly activates `generateFallbackPlan()` to ensure uninterrupted, scientifically valid guidance without degradation.

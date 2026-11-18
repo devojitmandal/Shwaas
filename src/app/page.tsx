@@ -15,6 +15,8 @@ import TodaysPlanView from '@/components/plan/TodaysPlanView';
 import BreathBudgetTracker from '@/components/budget/BreathBudgetTracker';
 import WhatsAppShareCard from '@/components/share/WhatsAppShareCard';
 import CommunityModeModal from '@/components/community/CommunityModeModal';
+import IndoorAirModel from '@/components/indoor/IndoorAirModel';
+import MyImpactDashboard from '@/components/impact/MyImpactDashboard';
 
 import {
   fetchAirQuality,
@@ -106,6 +108,8 @@ export default function Home() {
             cityName: currentAir.cityName,
             bestWindow: currentAir.bestWindow,
             worstWindow: currentAir.worstWindow,
+            noSafeWindowAvailable: currentAir.windowRecommendations?.noSafeWindowAvailable ?? false,
+            alertHeadline: currentAir.windowRecommendations?.alertHeadline,
           }),
         });
 
@@ -122,6 +126,8 @@ export default function Home() {
             exposure: localExposure,
             bestWindow: currentAir.bestWindow,
             worstWindow: currentAir.worstWindow,
+            noSafeWindowAvailable: currentAir.windowRecommendations?.noSafeWindowAvailable,
+            alertHeadline: currentAir.windowRecommendations?.alertHeadline,
           });
           setPlan(fallback);
           setPlanSource('deterministic_engine_fallback');
@@ -134,6 +140,8 @@ export default function Home() {
           exposure: localExposure,
           bestWindow: currentAir.bestWindow,
           worstWindow: currentAir.worstWindow,
+          noSafeWindowAvailable: currentAir.windowRecommendations?.noSafeWindowAvailable,
+          alertHeadline: currentAir.windowRecommendations?.alertHeadline,
         });
         setPlan(fallback);
         setPlanSource('deterministic_engine_fallback');
@@ -232,10 +240,27 @@ export default function Home() {
               timestamp={airData.current.time}
             />
 
+            {/* Scientific Atmospheric Data Provenance Notice */}
+            <div className="p-3.5 rounded-xl bg-white/80 border border-slate-200/80 text-[11px] text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-100 text-teal-800">
+                  Open-Meteo Atmospheric Chemistry
+                </span>
+                <span>
+                  Satellite & atmospheric model forecast (Copernicus / SILAM / CAMS ensemble). Not a substitute for continuous physical ground-station monitoring (CPCB / DPCC).
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-600 font-mono shrink-0">
+                Data Synced: {new Date(airData.current.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+
             {/* Best and Worst Outdoor Time Windows */}
             <TimeWindowsCard
               bestWindow={airData.bestWindow}
               worstWindow={airData.worstWindow}
+              noSafeWindowAvailable={airData.windowRecommendations?.noSafeWindowAvailable}
+              alertHeadline={airData.windowRecommendations?.alertHeadline}
             />
 
             {/* 24-Hour Forecast Chart */}
@@ -252,6 +277,7 @@ export default function Home() {
               hasPurifier={profile.hasPurifier}
               maskType={profile.maskType}
               commuteType={profile.commuteType}
+              hourlyPm25Forecast={airData.hourly.map((h) => h.pm25)}
             />
           </div>
         ) : null}
@@ -277,6 +303,12 @@ export default function Home() {
                 },
               }}
             />
+
+            {/* Physical Single-Zone Indoor Mass-Balance Room Modeling */}
+            <IndoorAirModel outdoorPm25={airData.current.pm25} />
+
+            {/* Measurable Impact Dashboard: Baseline vs Optimized Routine */}
+            <MyImpactDashboard exposure={exposure} cityName={airData.cityName} />
           </div>
         )}
 
@@ -299,6 +331,8 @@ export default function Home() {
               bestWindow={airData.bestWindow}
               worstWindow={airData.worstWindow}
               dominantPollutant={airData.current.dominantPollutant}
+              noSafeWindowAvailable={airData.windowRecommendations?.noSafeWindowAvailable}
+              alertHeadline={airData.windowRecommendations?.alertHeadline}
             />
           </div>
         ) : isPlanLoading ? (

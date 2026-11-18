@@ -13,6 +13,9 @@ interface WhatsAppShareCardProps {
   bestWindow: OutdoorWindow;
   worstWindow: OutdoorWindow;
   dominantPollutant: 'PM2.5' | 'PM10';
+  dataSource?: string;
+  noSafeWindowAvailable?: boolean;
+  alertHeadline?: string;
 }
 
 export default function WhatsAppShareCard({
@@ -23,6 +26,8 @@ export default function WhatsAppShareCard({
   bestWindow,
   worstWindow,
   dominantPollutant,
+  dataSource = 'Open-Meteo Model Forecast (CAMS/ECMWF)',
+  noSafeWindowAvailable = false,
 }: WhatsAppShareCardProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -43,21 +48,25 @@ export default function WhatsAppShareCard({
   const bestRange = formatWindow(bestWindow.startTime, bestWindow.endTime);
   const worstRange = formatWindow(worstWindow.startTime, worstWindow.endTime);
 
-  const shareSummaryText = `🌫️ *AirWise Smog Alert — ${cityName}*
+  const shareSummaryText = `🌫️ *AirWise Smog Protocol — ${cityName}*
 🚨 *National AQI:* ${aqi} (${category}) | PM2.5: ${pm25} µg/m³
+📡 *Data Source:* ${dataSource}
 
-✅ *Best Outdoor Window:* ${bestRange}
-(Safest time for mandatory errands, school sports or 15-min air flush)
+${
+  noSafeWindowAvailable
+    ? `⚠️ *Critical Alert:* No safe outdoor window exists today (all hours >200 AQI). Least polluted: ${bestRange}.`
+    : `✅ *Best Available Window:* ${bestRange} (Safest time for mandatory errands & 15-min air flush)`
+}
 
 ⛔ *Peak Inversion Smog Trap:* ${worstRange}
 (Ground-level exhaust trapped. Keep kids, seniors & asthmatics strictly indoors!)
 
-🛡️ *3 Golden Rules for Today:*
-1. Morning Commute: Wear snug N95 mask; avoid open two-wheelers.
-2. Home: Windows sealed tight; wet-mop floors (no dry sweeping).
-3. Society: Urge RWA to provide electric heaters to night guards to ban open trash fires.
+🛡️ *3 Actionable Family Rules:*
+1. Commute: Wear certified N95; avoid open two-wheelers.
+2. Home: Keep windows sealed until 1 PM; wet-mop floors (no dry sweeping).
+3. Society: Urge RWA to provide electric heaters to night guards to eliminate open waste fires.
 
-*Calculated via India CPCB Standards • airwise.in*`;
+*India CPCB NAQI Standard • airwise.in*`;
 
   // Draw high-res canvas image for download and sharing
   const generateCanvasImage = (): string => {
@@ -65,7 +74,7 @@ export default function WhatsAppShareCard({
     if (!canvas) return '';
 
     const width = 800;
-    const height = 1000;
+    const height = 1050;
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
@@ -81,124 +90,140 @@ export default function WhatsAppShareCard({
 
     // Header Tag
     ctx.fillStyle = '#0E7490';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillText('AIRWISE • URBAN CLEAN AIR GUARD', 50, 60);
+    ctx.font = 'bold 15px sans-serif';
+    ctx.fillText('AIRWISE • URBAN CLEAN AIR GUARD', 50, 55);
 
-    // Date
+    // Date & Time
     ctx.fillStyle = '#64748B';
-    ctx.font = '14px sans-serif';
+    ctx.font = '13px sans-serif';
     const dateStr = new Date().toLocaleDateString('en-IN', {
       weekday: 'long',
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
-    ctx.fillText(dateStr, 50, 85);
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    ctx.fillText(`${dateStr} • ${timeStr}`, 50, 80);
 
     // City Title
     ctx.fillStyle = '#0F172A';
     ctx.font = 'bold 36px serif';
-    ctx.fillText(cityName, 50, 130);
+    ctx.fillText(cityName, 50, 125);
 
     // Big AQI Box Card
     ctx.fillStyle = '#FFFFFF';
     ctx.strokeStyle = '#E2E8F0';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect(50, 160, 700, 150, 16);
+    ctx.roundRect(50, 150, 700, 150, 16);
     ctx.fill();
     ctx.stroke();
 
     // Inside AQI Box: Big Number
     ctx.fillStyle = '#0F172A';
     ctx.font = 'bold 64px serif';
-    ctx.fillText(String(aqi), 80, 240);
+    ctx.fillText(String(aqi), 80, 230);
 
     ctx.fillStyle = '#64748B';
     ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('NATIONAL AQI (CPCB)', 80, 265);
+    ctx.fillText('CPCB NATIONAL AQI', 80, 255);
 
     // Category Chip Fill inside box
     ctx.fillStyle = categoryMeta.chipBg;
     ctx.beginPath();
-    ctx.roundRect(360, 195, 350, 60, 12);
+    ctx.roundRect(360, 185, 350, 60, 12);
     ctx.fill();
 
     ctx.fillStyle = categoryMeta.textColor;
     ctx.font = 'bold 22px sans-serif';
-    ctx.fillText(`${category.toUpperCase()}`, 385, 233);
+    ctx.fillText(`${category.toUpperCase()}`, 385, 223);
 
     ctx.fillStyle = '#475569';
-    ctx.font = '14px sans-serif';
-    ctx.fillText(`PM2.5: ${pm25} µg/m³ • Driver: ${dominantPollutant}`, 360, 285);
+    ctx.font = '13px sans-serif';
+    ctx.fillText(`PM2.5: ${pm25} µg/m³ • Driver: ${dominantPollutant}`, 360, 275);
 
     // Window Cards: Best Window
-    ctx.fillStyle = '#F0FDF4';
-    ctx.strokeStyle = '#BBF7D0';
+    ctx.fillStyle = noSafeWindowAvailable ? '#FFFBEB' : '#F0FDF4';
+    ctx.strokeStyle = noSafeWindowAvailable ? '#FDE68A' : '#BBF7D0';
     ctx.beginPath();
-    ctx.roundRect(50, 335, 700, 105, 14);
+    ctx.roundRect(50, 320, 700, 110, 14);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = '#15803D';
+    ctx.fillStyle = noSafeWindowAvailable ? '#B45309' : '#15803D';
     ctx.font = 'bold 15px sans-serif';
-    ctx.fillText('🟢 OPTIMAL OUTDOOR WINDOW: ' + bestRange, 75, 370);
-    ctx.fillStyle = '#166534';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('Safest afternoon period for school runs, groceries, and 15-min home ventilation.', 75, 405);
+    ctx.fillText(
+      (noSafeWindowAvailable ? '⚠️ LEAST-POLLUTED WINDOW: ' : '🟢 OPTIMAL ACTIVITY WINDOW: ') + bestRange,
+      75,
+      355
+    );
+    ctx.fillStyle = noSafeWindowAvailable ? '#92400E' : '#166534';
+    ctx.font = '13px sans-serif';
+    ctx.fillText(
+      noSafeWindowAvailable
+        ? 'All hours are elevated (>200 AQI). Step out only if mandatory; keep visits brief.'
+        : 'Safest afternoon period for school runs, groceries, and 15-min home ventilation flush.',
+      75,
+      390
+    );
 
     // Worst Window
     ctx.fillStyle = '#FEF2F2';
     ctx.strokeStyle = '#FECACA';
     ctx.beginPath();
-    ctx.roundRect(50, 460, 700, 105, 14);
+    ctx.roundRect(50, 450, 700, 110, 14);
     ctx.fill();
     ctx.stroke();
 
     ctx.fillStyle = '#DC2626';
     ctx.font = 'bold 15px sans-serif';
-    ctx.fillText('🔴 PEAK INVERSION SMOG TRAP: ' + worstRange, 75, 495);
+    ctx.fillText('🔴 PEAK INVERSION SMOG TRAP: ' + worstRange, 75, 485);
     ctx.fillStyle = '#991B1B';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('Ground exhaust trapped. Strictly avoid morning jogs and outdoor physical play.', 75, 530);
+    ctx.font = '13px sans-serif';
+    ctx.fillText(
+      'Ground exhaust trapped by cool air. Strictly avoid morning jogging and outdoor physical play.',
+      75,
+      520
+    );
 
     // 3 Actionable Family Rules Card
     ctx.fillStyle = '#FFFFFF';
     ctx.strokeStyle = '#CBD5E1';
     ctx.beginPath();
-    ctx.roundRect(50, 585, 700, 280, 16);
+    ctx.roundRect(50, 580, 700, 290, 16);
     ctx.fill();
     ctx.stroke();
 
     ctx.fillStyle = '#0F172A';
     ctx.font = 'bold 18px serif';
-    ctx.fillText("TODAY'S 3 FAMILY DEFENSE RULES", 75, 625);
+    ctx.fillText("TODAY'S 3 FAMILY DEFENSE RULES", 75, 620);
 
     ctx.fillStyle = '#1E293B';
-    ctx.font = '15px sans-serif';
-    ctx.fillText('1. Commute & Transit:', 75, 665);
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('1. Commute & Transit:', 75, 655);
     ctx.fillStyle = '#475569';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('Wear certified N95 respirators. Avoid open two-wheelers during inversion hours.', 95, 690);
+    ctx.font = '13px sans-serif';
+    ctx.fillText('Wear certified N95 respirators. Avoid open two-wheelers during morning inversion hours.', 95, 680);
 
     ctx.fillStyle = '#1E293B';
-    ctx.font = '15px sans-serif';
-    ctx.fillText('2. Home Sealing & Cleaning:', 75, 730);
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('2. Home Sealing & Cleaning:', 75, 720);
     ctx.fillStyle = '#475569';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('Seal bedroom windows. Use wet-mopping rather than dry brooms to avoid dust plumes.', 95, 755);
+    ctx.font = '13px sans-serif';
+    ctx.fillText('Keep bedroom windows sealed. Wet-mop floors rather than dry sweeping to prevent dust plumes.', 95, 745);
 
     ctx.fillStyle = '#1E293B';
-    ctx.font = '15px sans-serif';
-    ctx.fillText('3. Vulnerable Care (Kids & Seniors):', 75, 795);
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('3. Vulnerable Care (Kids & Seniors):', 75, 785);
     ctx.fillStyle = '#475569';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('Keep infants and elders in purified clean-rooms with HEPA or DIY box-fan filtration.', 95, 820);
+    ctx.font = '13px sans-serif';
+    ctx.fillText('Keep infants and elders in purified clean-rooms with HEPA or DIY box-fan filtration.', 95, 810);
 
-    // Footer Branding
+    // Footer & Data Provenance
     ctx.fillStyle = '#64748B';
     ctx.font = '12px sans-serif';
-    ctx.fillText('Generated by AirWise • India CPCB Standards • Not Medical Advice • airwise.in', 50, 930);
+    ctx.fillText(`Telemetry: ${dataSource} • India CPCB NAQI Standard`, 50, 915);
+    ctx.fillText('AirWise Urban Clean Air Guard • Decision-Support (Not Medical Advice) • airwise.in', 50, 940);
 
     return canvas.toDataURL('image/png');
   };
@@ -220,7 +245,6 @@ export default function WhatsAppShareCard({
   };
 
   const handleShareWhatsApp = async () => {
-    // If mobile Web Share API supports file sharing, generate blob and share native image!
     if (navigator.share) {
       try {
         const dataUrl = generateCanvasImage();
@@ -241,7 +265,6 @@ export default function WhatsAppShareCard({
       }
     }
 
-    // Direct WhatsApp Web / App intent URL
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareSummaryText)}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
@@ -273,7 +296,7 @@ export default function WhatsAppShareCard({
             One-Tap Visual Share for WhatsApp
           </h3>
           <p className="mt-1 text-xs text-slate-500 max-w-xl leading-relaxed">
-            Generate a clean, high-resolution visual card of today&apos;s smog plan to share with family groups, school parent chats, and apartment society committees.
+            Generate an image of today&apos;s plan to share with family groups, school parent chats, and apartment society committees.
           </p>
         </div>
 
@@ -319,9 +342,12 @@ export default function WhatsAppShareCard({
             </span>
             <span className="text-lg font-serif font-bold text-slate-900">{cityName}</span>
           </div>
-          <span className="text-[11px] text-slate-500">
-            {new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-          </span>
+          <div className="text-right">
+            <span className="text-[11px] text-slate-500 block">
+              {new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+            </span>
+            <span className="text-[9px] font-mono text-slate-400 block">Model Forecast</span>
+          </div>
         </div>
 
         {/* Big AQI Callout inside Card */}
@@ -346,9 +372,16 @@ export default function WhatsAppShareCard({
 
         {/* Windows */}
         <div className="space-y-2 text-xs">
-          <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-950">
-            <span className="font-bold block">🟢 Best Outdoor Window: {bestRange}</span>
-            <span className="text-[11px] text-emerald-800">Safest time for school transit, errands & 15-min home ventilation.</span>
+          <div className={`p-2.5 rounded-lg border ${noSafeWindowAvailable ? 'bg-amber-50 border-amber-200 text-amber-950' : 'bg-emerald-50 border-emerald-200 text-emerald-950'}`}>
+            <span className="font-bold block">
+              {noSafeWindowAvailable ? '⚠️ Least-Polluted Window: ' : '🟢 Best Outdoor Window: '}
+              {bestRange}
+            </span>
+            <span className="text-[11px] opacity-90">
+              {noSafeWindowAvailable
+                ? 'All hours >200 AQI. Step out only if mandatory; keep duration minimal.'
+                : 'Safest time for school transit, errands & 15-min home ventilation.'}
+            </span>
           </div>
 
           <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-950">
@@ -373,8 +406,9 @@ export default function WhatsAppShareCard({
           </p>
         </div>
 
-        <div className="text-[10px] text-slate-400 text-center pt-1">
-          India CPCB NAQI Standard • Decision-Support (Not Medical Advice)
+        <div className="text-[10px] text-slate-400 text-center pt-1 border-t border-slate-100 flex items-center justify-between">
+          <span>{dataSource}</span>
+          <span>Decision-Support (Not Medical Advice)</span>
         </div>
       </div>
     </section>

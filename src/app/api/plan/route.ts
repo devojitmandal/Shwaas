@@ -5,6 +5,7 @@ import { householdProfileSchema } from '@/lib/validation/profileSchema';
 import { calculateDailyExposure } from '@/lib/exposure/engine';
 import { checkRateLimit } from '@/lib/security/rateLimiter';
 import { planResponseSchema, generateFallbackPlan } from '@/lib/plan/planSchema';
+import { OutdoorWindow } from '@/lib/api/openMeteo';
 
 // Server-side request payload schema
 const planRequestSchema = z.object({
@@ -16,16 +17,21 @@ const planRequestSchema = z.object({
     startTime: z.string(),
     endTime: z.string(),
     averageAqi: z.number(),
+    averagePm25: z.number().optional(),
     category: z.enum(['Good', 'Satisfactory', 'Moderate', 'Poor', 'Very Poor', 'Severe']),
     advisory: z.string(),
+    reasoning: z.array(z.string()).optional(),
+    isSafe: z.boolean().optional(),
   }),
   worstWindow: z.object({
     startTime: z.string(),
     endTime: z.string(),
     averageAqi: z.number(),
+    averagePm25: z.number().optional(),
     category: z.enum(['Good', 'Satisfactory', 'Moderate', 'Poor', 'Very Poor', 'Severe']),
     advisory: z.string(),
   }),
+  noSafeWindowAvailable: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -67,7 +73,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { profile, aqi, pm25, cityName, bestWindow, worstWindow } = parseResult.data;
+  const { profile, aqi, pm25, cityName, bestWindow, worstWindow, noSafeWindowAvailable } = parseResult.data;
 
   // 3. Compute Deterministic Scientific Exposure Output
   const exposure = calculateDailyExposure({
@@ -84,14 +90,28 @@ export async function POST(req: NextRequest) {
 
   const apiKey = process.env.GEMINI_API_KEY;
 
-  // 4. Fallback if no API key is configured
+  const normalizedBestWindow: OutdoorWindow = {
+    ...bestWindow,
+    averagePm25: bestWindow.averagePm25 ?? Math.round(pm25 * 0.8),
+    reasoning: bestWindow.reasoning ?? [bestWindow.advisory],
+    isSafe: bestWindow.isSafe ?? (bestWindow.averageAqi <= 100),
+  };
+  const normalizedWorstWindow: OutdoorWindow = {
+    ...worstWindow,
+    averagePm25: worstWindow.averagePm25 ?? Math.round(pm25 * 1.3),
+    reasoning: [worstWindow.advisory],
+    isSafe: false,
+  };
+
+  // 4. Fallback if no API key is configured or invalid
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {
     const fallbackPlan = generateFallbackPlan({
       cityName,
       profile,
       exposure,
-      bestWindow,
-      worstWindow,
+      bestWindow: normalizedBestWindow,
+      worstWindow: normalizedWorstWindow,
+      noSafeWindowAvailable,
     });
     return NextResponse.json({
       plan: fallbackPlan,
@@ -104,40 +124,43 @@ export async function POST(req: NextRequest) {
   try {
     const ai = new GoogleGenAI({ apiKey });
 
-    const prompt = `You are AirWise, an expert urban air quality assistant helping families navigate winter smog.
+    const prompt = `You are AirWise, a scientific urban air quality assistant helping families navigate severe winter smog.
 
-CRITICAL INSTRUCTIONS:
-- You must NOT invent, guess, or hallucinate any numbers or percentages.
+CRITICAL ANTI-HALLUCINATION INSTRUCTIONS:
+- You must NOT invent, guess, or fabricate any numerical metrics, AQI values, or percentages.
 - All exposure metrics, sub-indices, and percentage reductions are pre-computed by our deterministic engine below.
 - Explain the direct impact of each choice using ONLY the deterministic figures provided.
-- Provide practical indoor hacks (including window ventilation timing, clean-room approach, DIY box-fan with MERV 13/HEPA filter, and myth-checks).
-- Emphasize N95 respirators over cloth/surgical masks when AQI is elevated.
+- Do NOT claim that N95 provides 100% protection (account for real-world face-seal leakage ~15-20%).
+- Do NOT claim that a purifier "refunds" already inhaled pollution; it lowers future indoor exposure.
+- If noSafeWindowAvailable is true, do NOT pretend a safe window exists; explicitly recommend postponing outdoor activity.
 - Output MUST strictly be valid JSON conforming to the requested schema.
 
 DETERMINISTIC ENGINE DATA:
 - City: ${cityName}
-- Current NAQI: ${aqi} (${exposure.naqiCategory})
+- Current CPCB NAQI: ${aqi} (${exposure.naqiCategory})
 - Ambient PM2.5: ${pm25} µg/m³
-- Estimated Daily Baseline Inhaled Particulate Dose: ${exposure.baselineDose} µg·h/m³
-  - Outdoor Component: ${exposure.outdoorDose} µg·h/m³
-  - Indoor Component: ${exposure.indoorDose} µg·h/m³ (est. indoor concentration: ${exposure.indoorConcentration} µg/m³)
+- Total Daily Inhaled PM2.5 Mass Intake: ~${exposure.totalInhaledMassUg} µg/day
+  - Outdoor Intake: ~${exposure.outdoorInhaledMassUg} µg (over ${profile.outdoorHours} hrs)
+  - Indoor Intake: ~${exposure.indoorInhaledMassUg} µg (estimated room concentration: ${exposure.indoorConcentration} µg/m³)
+- Optimized Protocol Potential: Inhaled mass drops to ~${exposure.optimizedInhaledMassUg} µg/day (avoids ~${exposure.avoidedInhaledMassUg} µg, ~${exposure.potentialReductionPercent}% reduction)
 - Health Risk Tier: ${exposure.healthRiskTier}
-- Optimal Outdoor Time Window: ${bestWindow.startTime} to ${bestWindow.endTime} (Avg AQI: ${bestWindow.averageAqi}, ${bestWindow.category})
-- Peak Inversion Smog Trap Window: ${worstWindow.startTime} to ${worstWindow.endTime} (Avg AQI: ${worstWindow.averageAqi}, ${worstWindow.category})
-- Household Profile:
+- Best Outdoor Activity Window: ${bestWindow.startTime} to ${bestWindow.endTime} (Avg AQI: ${bestWindow.averageAqi}, ${bestWindow.category}, Safe: ${bestWindow.isSafe ?? false})
+- Peak Smog Inversion Window: ${worstWindow.startTime} to ${worstWindow.endTime} (Avg AQI: ${worstWindow.averageAqi}, ${worstWindow.category})
+- No Safe Window Flag: ${noSafeWindowAvailable ? 'YES - All 24 hours remain heavily polluted' : 'NO - Clean window available'}
+- Household Demographics:
   - Children: ${profile.numKids}
   - Elderly: ${profile.numElderly}
   - Commute Mode: ${profile.commuteType}
-  - Kitchen Cooking Fuel: ${profile.cookingFuel}
-  - Has Air Purifier: ${profile.hasPurifier ? 'Yes' : 'No'}
-  - Current Mask Type: ${profile.maskType}
-  - Outdoor Time: ${profile.outdoorHours} hrs/day
-- Theoretical Optimal Daily Dose: ${exposure.optimizedDose} µg·h/m³ (Achieves ~${exposure.potentialReductionPercent}% exposure reduction)
+  - Cooking Fuel: ${profile.cookingFuel}
+  - Air Purifier: ${profile.hasPurifier ? 'Equipped' : 'None'}
+  - Current Mask: ${profile.maskType}
 
 REQUIRED JSON STRUCTURE:
 {
   "headline": string,
   "executiveSummary": string,
+  "dailyBriefing": string,
+  "recommendedActivitySchedule": string[],
   "lowEmissionRoutine": [
     {
       "title": string,
@@ -182,8 +205,9 @@ REQUIRED JSON STRUCTURE:
         cityName,
         profile,
         exposure,
-        bestWindow,
-        worstWindow,
+        bestWindow: normalizedBestWindow,
+        worstWindow: normalizedWorstWindow,
+        noSafeWindowAvailable,
       });
       return NextResponse.json({
         plan: fallback,
@@ -203,8 +227,9 @@ REQUIRED JSON STRUCTURE:
       cityName,
       profile,
       exposure,
-      bestWindow,
-      worstWindow,
+      bestWindow: normalizedBestWindow,
+      worstWindow: normalizedWorstWindow,
+      noSafeWindowAvailable,
     });
     return NextResponse.json({
       plan: fallback,
