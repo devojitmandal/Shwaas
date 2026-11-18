@@ -59,6 +59,15 @@ Winter smog across urban India traps toxic fine particulate matter at ground lev
    - Concrete steps: distributing electric heaters to night security guards to ban open trash fires, wet-mopping driveways instead of dry-sweeping, and rescheduling outdoor assemblies.
    - One-click clean print layout (`window.print()`).
 
+8. **Personal "Breath Budget" (Calorie-Style Particle Allowance):**
+   - Turns abstract AQI numbers into an intuitive daily particulate budget (100 baseline points).
+   - High-smog morning two-wheeler commutes "spend" points heavily; shifting to afternoon solar mixing or wearing an N95 discounts the cost by 90%; bedroom HEPA filtration grants point "refunds".
+   - Interactive activity ledger allowing users to add custom daily routines and monitor their particle overdraft status live.
+
+9. **WhatsApp Visual Share Card (One-Tap Indian Family Share):**
+   - Instant client-side HTML5 Canvas rendering of an eye-catching, high-resolution 4:5 visual summary card (`airwise-delhi-today.png`).
+   - One-tap WhatsApp Web / mobile app sharing with formatted text summary of today's AQI, best afternoon errand windows, morning smog trap warnings, and 3 golden rules for families.
+
 ---
 
 ## 🏗️ Architecture & Data Flow
