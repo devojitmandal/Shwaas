@@ -10,8 +10,21 @@ interface RateLimitResult {
   retryAfterSeconds: number;
 }
 
-// In-memory sliding window IP store
+// In-memory sliding window IP store with bounded capacity to prevent memory exhaustion
 const ipHits = new Map<string, number[]>();
+const MAX_TRACKED_IPS = 2000;
+
+function pruneStaleEntries(now: number, windowMs: number): void {
+  const windowStart = now - windowMs;
+  for (const [key, timestamps] of ipHits.entries()) {
+    const active = timestamps.filter((t) => t > windowStart);
+    if (active.length === 0) {
+      ipHits.delete(key);
+    } else {
+      ipHits.set(key, active);
+    }
+  }
+}
 
 export function checkRateLimit(
   ip: string,
@@ -19,6 +32,11 @@ export function checkRateLimit(
 ): RateLimitResult {
   const now = Date.now();
   const windowStart = now - config.windowMs;
+
+  // Prune map if it grows beyond maximum threshold
+  if (ipHits.size > MAX_TRACKED_IPS) {
+    pruneStaleEntries(now, config.windowMs);
+  }
 
   const timestamps = ipHits.get(ip) || [];
   // Filter out expired timestamps

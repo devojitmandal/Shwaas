@@ -59,4 +59,42 @@ describe('Plan API Route Handler', () => {
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
+
+  it('rejects payloads exceeding 64KB with HTTP 413 Payload Too Large', async () => {
+    const req = new NextRequest('http://localhost:3000/api/plan', {
+      method: 'POST',
+      body: JSON.stringify(validPayload),
+      headers: {
+        'Content-Type': 'application/json',
+        'content-length': '70000',
+        'x-forwarded-for': '127.0.0.2',
+      },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(413);
+    const data = await res.json();
+    expect(data.error).toContain('Payload too large');
+  });
+
+  it('sanitizes malicious script or injection strings in cityName safely', async () => {
+    const maliciousPayload = {
+      ...validPayload,
+      cityName: 'Delhi; DROP TABLE users; <script>alert(1)</script>',
+    };
+
+    const req = new NextRequest('http://localhost:3000/api/plan', {
+      method: 'POST',
+      body: JSON.stringify(maliciousPayload),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-forwarded-for': '127.0.0.3',
+      },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.plan.headline).not.toContain('<script>');
+  });
 });

@@ -4,9 +4,9 @@ This document outlines the security controls, privacy guarantees, data flow boun
 
 ---
 
-## 1. Zero-Trust Input Validation (Zod)
+## 1. Zero-Trust Input Validation & Sanitization (Zod)
 
-Every boundary where external data enters the application enforces strict runtime type validation via Zod schemas:
+Every boundary where external data enters the application enforces strict runtime type validation and sanitization:
 
 1. **Client-Side Form Validation (`src/lib/validation/profileSchema.ts`):**
    - Validates household size (`numKids`, `numElderly` bounded between 0 and 20).
@@ -15,17 +15,24 @@ Every boundary where external data enters the application enforces strict runtim
 2. **Server-Side API Payload Validation (`src/app/api/plan/route.ts`):**
    - Validates request payloads on the server before invoking computational engines or external services.
    - Unrecognized parameters are stripped, and malformed inputs are rejected with `HTTP 400 Bad Request`.
-3. **LLM Output Schema Validation (`src/lib/plan/planSchema.ts`):**
+3. **Payload Size Guard (Anti-DoS):**
+   - Rejects incoming request bodies exceeding 64KB with `HTTP 413 Payload Too Large` to prevent memory exhaustion.
+4. **Prompt Injection Sanitization:**
+   - User-supplied geographic names are stripped of non-alphanumeric/control characters (`/[^\w\s,.-]/gi`) before interpolation into LLM prompts.
+5. **LLM Output Schema Validation (`src/lib/plan/planSchema.ts`):**
    - Gemini responses are strictly forced to `responseMimeType: 'application/json'`.
    - Before any LLM output is passed to the UI for rendering, it is validated against `planResponseSchema`. If validation fails, a verified deterministic rule-based fallback plan is dispatched instead.
+6. **External Request Timeout Guard:**
+   - External LLM requests are bounded by an 8,000ms timeout guard (`Promise.race`), deploying the deterministic fallback plan if Gemini hangs or stalls.
 
 ---
 
-## 2. Server-Side Route Rate Limiting
+## 2. Server-Side Route Rate Limiting (Memory-Bounded)
 
 To prevent API abuse, denial-of-service, and quota exhaustion:
 - The `/api/plan` route implements an in-memory sliding-window IP rate limiter (`src/lib/security/rateLimiter.ts`).
-- Rate quota: **15 plan calculations per minute per client IP**.
+- **Rate Quota:** 15 plan calculations per minute per client IP.
+- **Memory Boundary Defense:** The rate limiter map is capped at a maximum of 2,000 tracked IPs; an automatic LRU prune cycle clears expired timestamps to eliminate unbounded memory growth under spoofed IP floods.
 - When exceeded, requests are stopped with `HTTP 429 Too Many Requests` along with a standardized `Retry-After` header.
 
 ---
@@ -38,12 +45,23 @@ To prevent API abuse, denial-of-service, and quota exhaustion:
 
 ---
 
-## 4. HTTP Security Headers
+## 4. HTTP Security Headers & Content Security Policy (CSP)
 
 Configured in `next.config.ts` for all route responses:
+- **Content-Security-Policy (CSP):**
+  - `default-src 'self'`
+  - `script-src 'self' 'unsafe-eval' 'unsafe-inline'`
+  - `style-src 'self' 'unsafe-inline'`
+  - `img-src 'self' blob: data: https:`
+  - `font-src 'self' data:`
+  - `connect-src 'self' https://air-quality-api.open-meteo.com https://api.open-meteo.com https://geocoding-api.open-meteo.com https://generativelanguage.googleapis.com`
+  - `object-src 'none'`
+  - `frame-ancestors 'none'`
+  - `upgrade-insecure-requests`
 - `Strict-Transport-Security`: `max-age=63072000; includeSubDomains; preload` (enforces modern TLS).
 - `X-Frame-Options`: `DENY` (prevents clickjacking attacks).
 - `X-Content-Type-Options`: `nosniff` (mitigates MIME-sniffing exploits).
+- `X-Permitted-Cross-Domain-Policies`: `none` (blocks cross-domain policy files).
 - `Referrer-Policy`: `strict-origin-when-cross-origin` (prevents URL referrer leakage).
 - `Permissions-Policy`: `camera=(), microphone=(), geolocation=(self)` (restricts hardware capabilities).
 

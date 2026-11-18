@@ -5,7 +5,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16_App_Router-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4_Tokens-38bdf8?style=flat&logo=tailwindcss)](https://tailwindcss.com/)
-[![Vitest](https://img.shields.io/badge/Vitest-30%2F30_Tests_Passing-729B1B?style=flat&logo=vitest)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-38%2F38_Tests_Passing-729B1B?style=flat&logo=vitest)](https://vitest.dev/)
 [![CPCB NAQI](https://img.shields.io/badge/Air_Standard-CPCB_India_NAQI-0E7490?style=flat)](https://cpcb.nic.in/)
 [![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG_2.1_AA-success?style=flat)](https://www.w3.org/WAI/WCAG21/AA/)
 
@@ -155,7 +155,7 @@ airwise/
 
 ## 🧪 Testing & Verification
 
-AirWise maintains 100% passing test coverage across 10 test suites and 30 unit/integration tests:
+AirWise maintains 100% passing test coverage across 13 test suites and 38 unit/integration tests:
 
 ```bash
 cd C:\Users\devoj\Hackathon\airwise
@@ -168,10 +168,14 @@ npm test
 - `src/lib/exposure/breathBudget.test.ts`: Relative planning index without medical safety claims, hourly forecast activity rescheduling, future mitigation math.
 - `src/lib/api/openMeteo.test.ts`: Open-Meteo payload parsing, meteorological window recommendations, severe smog lock alert.
 - `src/lib/plan/plan.test.ts`: Schema validation, fallback plan structural validity, medical disclaimers.
-- `src/app/api/plan/route.test.ts`: Server route handler, rate limiter integration, fallback dispatching.
+- `src/app/api/plan/route.test.ts`: Server route handler, rate limiter integration, fallback dispatching, 64KB payload limit, prompt-injection sanitization.
 - `src/lib/validation/profileSchema.test.ts`: Client-side household validation boundaries.
-- `src/lib/security/rateLimiter.test.ts`: Sliding-window IP rate limiting and header generation.
-- Component tests: `CurrentAqiCard.test.tsx`, `WhatIfSimulator.test.tsx`.
+- `src/lib/security/rateLimiter.test.ts`: Sliding-window IP rate limiting, header generation, and memory bounds.
+- `src/components/indoor/IndoorAirModel.test.tsx`: Physical mass-balance interactive UI, ventilation strategies, and CADR selectors.
+- `src/components/impact/MyImpactDashboard.test.tsx`: Baseline vs Optimized Routine impact dashboard and avoided particulate mass.
+- `src/components/aqi/TimeWindowsCard.test.tsx`: Dynamic meteorological window UI and severe smog lockout alert state.
+- `src/components/aqi/CurrentAqiCard.test.tsx`: CPCB NAQI category rendering and contrast badges.
+- `src/components/plan/WhatIfSimulator.test.tsx`: Real-time reactive what-if intervention simulator.
 
 ---
 

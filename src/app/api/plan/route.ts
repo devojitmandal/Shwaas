@@ -35,6 +35,12 @@ const planRequestSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // 0. Payload Size Cap (64 KB)
+  const contentLength = req.headers.get('content-length');
+  if (contentLength && parseInt(contentLength, 10) > 65536) {
+    return NextResponse.json({ error: 'Payload too large (max 64KB).' }, { status: 413 });
+  }
+
   // 1. IP Rate Limiting (15 requests/minute)
   const clientIp =
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -75,6 +81,13 @@ export async function POST(req: NextRequest) {
 
   const { profile, aqi, pm25, cityName, bestWindow, worstWindow, noSafeWindowAvailable } = parseResult.data;
 
+  // Sanitize cityName to prevent prompt injection vectors
+  const sanitizedCityName =
+    cityName
+      .replace(/[^\w\s,.-]/gi, '')
+      .trim()
+      .slice(0, 80) || 'Selected Location';
+
   // 3. Compute Deterministic Scientific Exposure Output
   const exposure = calculateDailyExposure({
     ...profile,
@@ -106,7 +119,7 @@ export async function POST(req: NextRequest) {
   // 4. Fallback if no API key is configured or invalid
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {
     const fallbackPlan = generateFallbackPlan({
-      cityName,
+      cityName: sanitizedCityName,
       profile,
       exposure,
       bestWindow: normalizedBestWindow,
@@ -187,13 +200,20 @@ REQUIRED JSON STRUCTURE:
   "disclaimer": string
 }`;
 
-    const response = await ai.models.generateContent({
+    const generatePromise = ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
       },
     });
+
+    // 8-second timeout guard to prevent thread blocking
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Gemini API call timed out after 8000ms')), 8000)
+    );
+
+    const response = (await Promise.race([generatePromise, timeoutPromise])) as any;
 
     const responseText = response.text?.trim() || '';
     const parsedJson = JSON.parse(responseText);
@@ -202,7 +222,7 @@ REQUIRED JSON STRUCTURE:
     if (!validation.success) {
       console.warn('Gemini response failed JSON schema validation, falling back:', validation.error);
       const fallback = generateFallbackPlan({
-        cityName,
+        cityName: sanitizedCityName,
         profile,
         exposure,
         bestWindow: normalizedBestWindow,
@@ -224,7 +244,7 @@ REQUIRED JSON STRUCTURE:
   } catch (error) {
     console.error('Gemini API call failed, deploying fallback plan:', error);
     const fallback = generateFallbackPlan({
-      cityName,
+      cityName: sanitizedCityName,
       profile,
       exposure,
       bestWindow: normalizedBestWindow,

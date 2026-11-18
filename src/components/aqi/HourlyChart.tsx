@@ -112,7 +112,7 @@ export default function HourlyChart({
                 tabIndex={0}
                 role="button"
                 aria-label={`${formatHour(point.time)}: AQI ${point.aqi}, ${point.category}`}
-                className="flex-1 min-w-[28px] sm:min-w-0 flex flex-col items-center justify-end h-full group cursor-pointer focus:outline-hidden"
+                className="flex-1 min-w-[28px] sm:min-w-0 flex flex-col items-center justify-end h-full group cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-teal-700 rounded-sm"
               >
                 {/* Bar */}
                 <div className="w-full flex flex-col items-center justify-end h-32 relative">
