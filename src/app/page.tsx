@@ -12,6 +12,8 @@ import HouseholdProfileModal from '@/components/profile/HouseholdProfileModal';
 import ImpactExplainer from '@/components/plan/ImpactExplainer';
 import WhatIfSimulator from '@/components/plan/WhatIfSimulator';
 import TodaysPlanView from '@/components/plan/TodaysPlanView';
+import BreathBudgetTracker from '@/components/budget/BreathBudgetTracker';
+import WhatsAppShareCard from '@/components/share/WhatsAppShareCard';
 import CommunityModeModal from '@/components/community/CommunityModeModal';
 
 import {
@@ -242,6 +244,15 @@ export default function Home() {
               bestStartTime={airData.bestWindow.startTime}
               worstStartTime={airData.worstWindow.startTime}
             />
+
+            {/* Breath Budget Exposure Tracker */}
+            <BreathBudgetTracker
+              currentAqi={airData.current.aqi}
+              pm25={airData.current.pm25}
+              hasPurifier={profile.hasPurifier}
+              maskType={profile.maskType}
+              commuteType={profile.commuteType}
+            />
           </div>
         ) : null}
 
@@ -270,13 +281,26 @@ export default function Home() {
         )}
 
         {/* Today's Personalized Smog Plan */}
-        {plan ? (
-          <TodaysPlanView
-            plan={plan}
-            isLoading={isPlanLoading}
-            source={planSource}
-            onRefresh={() => airData && loadPlan(airData, profile)}
-          />
+        {plan && airData ? (
+          <div className="space-y-6">
+            <TodaysPlanView
+              plan={plan}
+              isLoading={isPlanLoading}
+              source={planSource}
+              onRefresh={() => airData && loadPlan(airData, profile)}
+            />
+
+            {/* WhatsApp Visual Share Card Generator */}
+            <WhatsAppShareCard
+              cityName={airData.cityName}
+              aqi={airData.current.aqi}
+              pm25={airData.current.pm25}
+              category={airData.current.category}
+              bestWindow={airData.bestWindow}
+              worstWindow={airData.worstWindow}
+              dominantPollutant={airData.current.dominantPollutant}
+            />
+          </div>
         ) : isPlanLoading ? (
           <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-3">
             <Loader2 className="w-7 h-7 text-teal-800 animate-spin" aria-hidden="true" />
