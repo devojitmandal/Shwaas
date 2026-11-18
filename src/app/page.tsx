@@ -1,69 +1,336 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import Header from '@/components/layout/Header';
+import HeroTitle from '@/components/ui/HeroTitle';
+import LocationSearch from '@/components/aqi/LocationSearch';
+import CurrentAqiCard from '@/components/aqi/CurrentAqiCard';
+import HourlyChart from '@/components/aqi/HourlyChart';
+import TimeWindowsCard from '@/components/aqi/TimeWindowsCard';
+import ProfileBadge from '@/components/profile/ProfileBadge';
+import HouseholdProfileModal from '@/components/profile/HouseholdProfileModal';
+import ImpactExplainer from '@/components/plan/ImpactExplainer';
+import WhatIfSimulator from '@/components/plan/WhatIfSimulator';
+import TodaysPlanView from '@/components/plan/TodaysPlanView';
+import CommunityModeModal from '@/components/community/CommunityModeModal';
+
+import {
+  fetchAirQuality,
+  ProcessedAirQuality,
+} from '@/lib/api/openMeteo';
+import {
+  HouseholdProfile,
+  DEFAULT_HOUSEHOLD_PROFILE,
+  loadProfileFromStorage,
+} from '@/lib/validation/profileSchema';
+import { PlanResponse, generateFallbackPlan } from '@/lib/plan/planSchema';
+import { calculateDailyExposure, ExposureResult } from '@/lib/exposure/engine';
+import { Loader2, AlertCircle, RefreshCw, Users, Shield } from 'lucide-react';
 
 export default function Home() {
+  // Location & AQI state
+  const [currentLocation, setCurrentLocation] = useState({
+    name: 'Delhi, India',
+    latitude: 28.6519,
+    longitude: 77.2315,
+  });
+  const [airData, setAirData] = useState<ProcessedAirQuality | null>(null);
+  const [isAqiLoading, setIsAqiLoading] = useState(true);
+  const [aqiError, setAqiError] = useState<string | null>(null);
+
+  // Household Profile state
+  const [profile, setProfile] = useState<HouseholdProfile>(DEFAULT_HOUSEHOLD_PROFILE);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isCommunityModalOpen, setIsCommunityModalOpen] = useState(false);
+
+  // Plan & Exposure state
+  const [plan, setPlan] = useState<PlanResponse | null>(null);
+  const [exposure, setExposure] = useState<ExposureResult | null>(null);
+  const [planSource, setPlanSource] = useState<string>('deterministic_engine_fallback');
+  const [isPlanLoading, setIsPlanLoading] = useState(false);
+
+  // Load profile from localStorage on client mount
+  useEffect(() => {
+    const saved = loadProfileFromStorage();
+    setProfile(saved);
+  }, []);
+
+  // Fetch air quality data when location changes
+  const loadAirQuality = useCallback(async (lat: number, lon: number, name: string) => {
+    setIsAqiLoading(true);
+    setAqiError(null);
+    try {
+      const data = await fetchAirQuality(lat, lon, name);
+      setAirData(data);
+    } catch (err: any) {
+      console.error(err);
+      setAqiError('Unable to load live atmospheric data from Open-Meteo. Please try another city.');
+    } finally {
+      setIsAqiLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAirQuality(currentLocation.latitude, currentLocation.longitude, currentLocation.name);
+  }, [currentLocation, loadAirQuality]);
+
+  // Request or compute plan when air data or profile updates
+  const loadPlan = useCallback(
+    async (currentAir: ProcessedAirQuality, currentProf: HouseholdProfile) => {
+      setIsPlanLoading(true);
+
+      // Deterministic pre-calculation
+      const localExposure = calculateDailyExposure({
+        ...currentProf,
+        currentAqi: currentAir.current.aqi,
+        pm25Concentration: currentAir.current.pm25,
+        timeOutdoorsHours: currentProf.outdoorHours,
+        indoorHours: Math.max(0, 24 - currentProf.outdoorHours),
+        vulnerableMembers: {
+          hasKids: currentProf.numKids > 0,
+          hasElderly: currentProf.numElderly > 0,
+        },
+      });
+      setExposure(localExposure);
+
+      try {
+        const res = await fetch('/api/plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profile: currentProf,
+            aqi: currentAir.current.aqi,
+            pm25: currentAir.current.pm25,
+            cityName: currentAir.cityName,
+            bestWindow: currentAir.bestWindow,
+            worstWindow: currentAir.worstWindow,
+          }),
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          setPlan(json.plan);
+          setExposure(json.exposure);
+          setPlanSource(json.source);
+        } else {
+          // Graceful fallback to deterministic engine
+          const fallback = generateFallbackPlan({
+            cityName: currentAir.cityName,
+            profile: currentProf,
+            exposure: localExposure,
+            bestWindow: currentAir.bestWindow,
+            worstWindow: currentAir.worstWindow,
+          });
+          setPlan(fallback);
+          setPlanSource('deterministic_engine_fallback');
+        }
+      } catch (err) {
+        console.error('Error fetching plan, using local deterministic fallback:', err);
+        const fallback = generateFallbackPlan({
+          cityName: currentAir.cityName,
+          profile: currentProf,
+          exposure: localExposure,
+          bestWindow: currentAir.bestWindow,
+          worstWindow: currentAir.worstWindow,
+        });
+        setPlan(fallback);
+        setPlanSource('deterministic_engine_fallback');
+      } finally {
+        setIsPlanLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (airData) {
+      loadPlan(airData, profile);
+    }
+  }, [airData, profile, loadPlan]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-teal-100 selection:text-teal-900">
+      {/* Scroll-aware Header */}
+      <Header
+        onCommunityClick={() => setIsCommunityModalOpen(true)}
+        onProfileClick={() => setIsProfileModalOpen(true)}
+      />
+
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pb-24 space-y-10">
+        {/* Hero Section */}
+        <HeroTitle
+          title="Breathe with Scientific Clarity."
+          subtitle="A deterministic GenAI assistant helping families and communities navigate severe winter smog with low-emission routines, indoor clean-air hacks, and quantified exposure reductions."
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+
+        {/* Location Selector & Geolocation */}
+        <section aria-label="Location and Air Quality Controls" className="space-y-4">
+          <LocationSearch
+            currentCity={currentLocation.name}
+            isLoading={isAqiLoading}
+            onSelectCity={(city) => {
+              setCurrentLocation(city);
+            }}
+          />
+
+          {aqiError && (
+            <div
+              role="alert"
+              className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{aqiError}</span>
+              </div>
+              <button
+                onClick={() =>
+                  loadAirQuality(
+                    currentLocation.latitude,
+                    currentLocation.longitude,
+                    currentLocation.name
+                  )
+                }
+                className="font-semibold underline ml-2"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* Household Profile Strip */}
+        <section aria-label="Household Profile Settings">
+          <ProfileBadge
+            profile={profile}
+            onEditClick={() => setIsProfileModalOpen(true)}
+          />
+        </section>
+
+        {/* Live AQI & Hourly Forecast Progression */}
+        {isAqiLoading && !airData ? (
+          <div className="p-16 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-3">
+            <Loader2 className="w-8 h-8 text-teal-800 animate-spin" aria-hidden="true" />
+            <p className="text-sm font-medium text-slate-600">
+              Fetching Open-Meteo atmospheric telemetry and computing CPCB NAQI...
+            </p>
+          </div>
+        ) : airData ? (
+          <div className="space-y-6">
+            {/* Live AQI Card */}
+            <CurrentAqiCard
+              cityName={airData.cityName}
+              aqi={airData.current.aqi}
+              pm25={airData.current.pm25}
+              pm10={airData.current.pm10}
+              dominantPollutant={airData.current.dominantPollutant}
+              category={airData.current.category}
+              chipBg={airData.current.chipBg}
+              textColor={airData.current.textColor}
+              description={airData.current.description}
+              timestamp={airData.current.time}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+            {/* Best and Worst Outdoor Time Windows */}
+            <TimeWindowsCard
+              bestWindow={airData.bestWindow}
+              worstWindow={airData.worstWindow}
+            />
+
+            {/* 24-Hour Forecast Chart */}
+            <HourlyChart
+              hourly={airData.hourly}
+              bestStartTime={airData.bestWindow.startTime}
+              worstStartTime={airData.worstWindow.startTime}
+            />
+          </div>
+        ) : null}
+
+        {/* Deterministic Exposure Engine Breakdown */}
+        {exposure && airData && (
+          <div className="space-y-6">
+            <ImpactExplainer
+              exposure={exposure}
+              currentAqi={airData.current.aqi}
+            />
+
+            {/* Live What-If Interactive Sandbox */}
+            <WhatIfSimulator
+              currentProfile={{
+                ...profile,
+                currentAqi: airData.current.aqi,
+                pm25Concentration: airData.current.pm25,
+                timeOutdoorsHours: profile.outdoorHours,
+                indoorHours: Math.max(0, 24 - profile.outdoorHours),
+                vulnerableMembers: {
+                  hasKids: profile.numKids > 0,
+                  hasElderly: profile.numElderly > 0,
+                },
+              }}
+            />
+          </div>
+        )}
+
+        {/* Today's Personalized Smog Plan */}
+        {plan ? (
+          <TodaysPlanView
+            plan={plan}
+            isLoading={isPlanLoading}
+            source={planSource}
+            onRefresh={() => airData && loadPlan(airData, profile)}
+          />
+        ) : isPlanLoading ? (
+          <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-3">
+            <Loader2 className="w-7 h-7 text-teal-800 animate-spin" aria-hidden="true" />
+            <p className="text-sm font-medium text-slate-600">
+              Generating tailored smog defense protocol...
+            </p>
+          </div>
+        ) : null}
+
+        {/* Community Mode Banner */}
+        <section
+          aria-labelledby="community-banner-title"
+          className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
+        >
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-800">
+              <Users className="w-4 h-4 text-teal-800" aria-hidden="true" />
+              <span id="community-banner-title">Community Self-Defense</span>
+            </div>
+            <h3 className="text-xl font-serif font-bold text-slate-900 tracking-tight">
+              Apartment Society & School Clean-Air Checklists
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-relaxed">
+              Collective action against winter smog. Generate, print, or share printable protocols to ban open burning, provide guard heaters, and adjust school timings.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setIsCommunityModalOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-teal-800 hover:bg-teal-900 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors shrink-0 focus-visible:outline-2 focus-visible:outline-teal-800"
           >
-            Documentation
-          </a>
-        </div>
+            <Users className="w-4 h-4 text-teal-200" aria-hidden="true" />
+            <span>Open Community Mode</span>
+          </button>
+        </section>
       </main>
+
+      {/* Household Profile Modal */}
+      <HouseholdProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onProfileUpdated={(updated) => {
+          setProfile(updated);
+        }}
+      />
+
+      {/* Community Checklist Modal */}
+      <CommunityModeModal
+        isOpen={isCommunityModalOpen}
+        onClose={() => setIsCommunityModalOpen(false)}
+        cityName={currentLocation.name}
+        currentAqi={airData?.current.aqi ?? 200}
+      />
     </div>
   );
 }
