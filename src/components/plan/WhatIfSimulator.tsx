@@ -138,7 +138,7 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
           <select
             id="sim-commute"
             value={hypoCommute}
-            onChange={(e) => setHypoCommute(e.target.value as any)}
+            onChange={(e) => setHypoCommute(e.target.value as CommuteType)}
             className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md text-xs bg-white text-slate-900"
           >
             <option value="two_wheeler">Two-Wheeler</option>
@@ -157,7 +157,7 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
           <select
             id="sim-mask"
             value={hypoMask}
-            onChange={(e) => setHypoMask(e.target.value as any)}
+            onChange={(e) => setHypoMask(e.target.value as MaskType)}
             className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md text-xs bg-white text-slate-900"
           >
             <option value="none">No Mask</option>
@@ -188,7 +188,7 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
           <select
             id="sim-ventilation"
             value={hypoVentilation}
-            onChange={(e) => setHypoVentilation(e.target.value as any)}
+            onChange={(e) => setHypoVentilation(e.target.value as VentilationStrategy)}
             className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md text-xs bg-white text-slate-900"
           >
             <option value="sealed_windows">Sealed Windows</option>

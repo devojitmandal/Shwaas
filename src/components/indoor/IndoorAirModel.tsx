@@ -142,7 +142,7 @@ export default function IndoorAirModel({ outdoorPm25 }: IndoorAirModelProps) {
             <select
               id="indoor-ventilation"
               value={ventilation}
-              onChange={(e) => setVentilation(e.target.value as any)}
+              onChange={(e) => setVentilation(e.target.value as VentilationStrategy)}
               className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md bg-white text-slate-900"
             >
               <option value="sealed_windows">Sealed Windows (AER ~0.35 h⁻¹)</option>
@@ -184,7 +184,7 @@ export default function IndoorAirModel({ outdoorPm25 }: IndoorAirModelProps) {
             <select
               id="indoor-cooking"
               value={cookingFuel}
-              onChange={(e) => setCookingFuel(e.target.value as any)}
+              onChange={(e) => setCookingFuel(e.target.value as CookingFuel)}
               className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md bg-white text-slate-900"
             >
               <option value="lpg_electric">LPG / Electric Induction (Clean)</option>

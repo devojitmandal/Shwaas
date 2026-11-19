@@ -165,8 +165,10 @@ describe('Room Audit API Route Handler', () => {
     process.env.GEMINI_API_KEY = 'super_secret_vision_key_abc123';
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const mockVisionErr: any = new Error('Vision quota exhausted on gemini-3.8-flash');
-    mockVisionErr.status = 429;
+    const mockVisionErr = Object.assign(
+      new Error('Vision quota exhausted on gemini-3.8-flash'),
+      { status: 429 }
+    );
     mockVisionGenerateContent.mockRejectedValueOnce(mockVisionErr);
 
     const req = new NextRequest('http://localhost:3000/api/room-audit', {

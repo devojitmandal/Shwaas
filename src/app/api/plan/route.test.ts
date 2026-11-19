@@ -172,8 +172,10 @@ describe('Plan API Route Handler', () => {
     process.env.GEMINI_API_KEY = 'super_secret_user_api_key_xyz987';
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const mockError: any = new Error('Model gemini-3.8-flash not found or quota exhausted');
-    mockError.status = 404;
+    const mockError = Object.assign(
+      new Error('Model gemini-3.8-flash not found or quota exhausted'),
+      { status: 404 }
+    );
     mockGenerateContent.mockRejectedValueOnce(mockError);
 
     const req = new NextRequest('http://localhost:3000/api/plan', {

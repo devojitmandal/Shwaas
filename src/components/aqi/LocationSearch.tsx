@@ -33,14 +33,10 @@ export default function LocationSearch({
 
   // Debounced search
   useEffect(() => {
-    if (query.trim().length < 2) {
-      setSuggestions([]);
-      setIsSearching(false);
-      return;
-    }
+    if (query.trim().length < 2) return;
 
-    setIsSearching(true);
     const timer = setTimeout(async () => {
+      setIsSearching(true);
       try {
         const results = await searchCities(query);
         setSuggestions(results);
@@ -130,7 +126,14 @@ export default function LocationSearch({
             aria-controls="city-suggestions-list"
             aria-autocomplete="list"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setQuery(val);
+              if (val.trim().length < 2) {
+                setSuggestions([]);
+                setIsSearching(false);
+              }
+            }}
             onFocus={() => {
               if (suggestions.length > 0) setIsOpen(true);
             }}

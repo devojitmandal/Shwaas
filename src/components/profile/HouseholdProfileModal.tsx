@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import {
   HouseholdProfile,
   householdProfileSchema,
-  DEFAULT_HOUSEHOLD_PROFILE,
   saveProfileToStorage,
   loadProfileFromStorage,
 } from '@/lib/validation/profileSchema';
@@ -21,23 +20,18 @@ export default function HouseholdProfileModal({
   onClose,
   onProfileUpdated,
 }: HouseholdProfileModalProps) {
-  const [formData, setFormData] = useState<HouseholdProfile>(DEFAULT_HOUSEHOLD_PROFILE);
+  const [formData, setFormData] = useState<HouseholdProfile>(loadProfileFromStorage);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      const existing = loadProfileFromStorage();
-      setFormData(existing);
-      setErrors({});
-      setSavedSuccess(false);
+    if (!isOpen) return;
 
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') onClose();
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -161,7 +155,7 @@ export default function HouseholdProfileModal({
                 id="commuteType"
                 value={formData.commuteType}
                 onChange={(e) =>
-                  setFormData({ ...formData, commuteType: e.target.value as any })
+                  setFormData({ ...formData, commuteType: e.target.value as HouseholdProfile['commuteType'] })
                 }
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-teal-700 focus:border-teal-700"
               >
@@ -204,7 +198,7 @@ export default function HouseholdProfileModal({
                 id="cookingFuel"
                 value={formData.cookingFuel}
                 onChange={(e) =>
-                  setFormData({ ...formData, cookingFuel: e.target.value as any })
+                  setFormData({ ...formData, cookingFuel: e.target.value as HouseholdProfile['cookingFuel'] })
                 }
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-teal-700 focus:border-teal-700"
               >
@@ -222,7 +216,7 @@ export default function HouseholdProfileModal({
                 id="ventilationStrategy"
                 value={formData.ventilationStrategy}
                 onChange={(e) =>
-                  setFormData({ ...formData, ventilationStrategy: e.target.value as any })
+                  setFormData({ ...formData, ventilationStrategy: e.target.value as HouseholdProfile['ventilationStrategy'] })
                 }
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-teal-700 focus:border-teal-700"
               >
@@ -281,7 +275,7 @@ export default function HouseholdProfileModal({
                 <select
                   value={formData.maskType}
                   onChange={(e) => {
-                    const mType = e.target.value as any;
+                    const mType = e.target.value as HouseholdProfile['maskType'];
                     setFormData({
                       ...formData,
                       maskType: mType,

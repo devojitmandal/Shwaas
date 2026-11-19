@@ -60,8 +60,11 @@ export default function Home() {
 
   // Load profile from localStorage on client mount
   useEffect(() => {
-    const saved = loadProfileFromStorage();
-    setProfile(saved);
+    const timer = setTimeout(() => {
+      const saved = loadProfileFromStorage();
+      setProfile(saved);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Fetch air quality data when location changes
@@ -71,7 +74,7 @@ export default function Home() {
     try {
       const data = await fetchAirQuality(lat, lon, name);
       setAirData(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setAqiError('Unable to load live atmospheric data from Open-Meteo. Please try another city.');
     } finally {
@@ -80,7 +83,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    loadAirQuality(currentLocation.latitude, currentLocation.longitude, currentLocation.name);
+    const timer = setTimeout(() => {
+      loadAirQuality(currentLocation.latitude, currentLocation.longitude, currentLocation.name);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [currentLocation, loadAirQuality]);
 
   // Request or compute plan when air data or profile updates
@@ -161,9 +167,11 @@ export default function Home() {
   );
 
   useEffect(() => {
-    if (airData) {
+    if (!airData) return;
+    const timer = setTimeout(() => {
       loadPlan(airData, profile, language);
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [airData, profile, language, loadPlan]);
 
   return (
@@ -395,13 +403,15 @@ export default function Home() {
       </main>
 
       {/* Household Profile Modal */}
-      <HouseholdProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        onProfileUpdated={(updated) => {
-          setProfile(updated);
-        }}
-      />
+      {isProfileModalOpen && (
+        <HouseholdProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          onProfileUpdated={(updated) => {
+            setProfile(updated);
+          }}
+        />
+      )}
 
       {/* Community Checklist Modal */}
       <CommunityModeModal
