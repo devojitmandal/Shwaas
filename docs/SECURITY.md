@@ -23,7 +23,7 @@ Every boundary where external data enters the application enforces strict runtim
    - Gemini responses are strictly forced to `responseMimeType: 'application/json'`.
    - Before any LLM output is passed to the UI for rendering, it is validated against `planResponseSchema`. If validation fails, a verified deterministic rule-based fallback plan is dispatched instead.
 6. **External Request Timeout Guard:**
-   - External LLM requests are bounded by an 8,000ms timeout guard (`Promise.race`), deploying the deterministic fallback plan if Gemini hangs or stalls.
+   - External LLM requests are bounded by a 20,000ms timeout guard (`Promise.race`), deploying the deterministic fallback plan if Gemini hangs or stalls.
 
 ---
 

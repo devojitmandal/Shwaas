@@ -1,9 +1,31 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from './route';
 import { NextRequest } from 'next/server';
 import { DEFAULT_HOUSEHOLD_PROFILE } from '@/lib/validation/profileSchema';
 
+// Hoisted mock for @google/genai in plan route tests
+const mockGenerateContent = vi.fn();
+vi.mock('@google/genai', () => {
+  return {
+    GoogleGenAI: class {
+      models = {
+        generateContent: mockGenerateContent,
+      };
+    },
+  };
+});
+
 describe('Plan API Route Handler', () => {
+  const originalEnv = process.env.GEMINI_API_KEY;
+
+  beforeEach(() => {
+    delete process.env.GEMINI_API_KEY;
+    mockGenerateContent.mockReset();
+  });
+
+  afterEach(() => {
+    process.env.GEMINI_API_KEY = originalEnv;
+  });
   const validPayload = {
     profile: DEFAULT_HOUSEHOLD_PROFILE,
     aqi: 280,
@@ -144,5 +166,44 @@ describe('Plan API Route Handler', () => {
     expect(data.plan.disclaimer).toContain('ವೈದ್ಯಕೀಯ ಸಲಹೆಯಲ್ಲ');
     // Numbers still strictly deterministic
     expect(data.exposure.totalInhaledMassUg).toBeGreaterThan(0);
+  });
+
+  it('invokes Gemini with gemini-3.8-flash and logs error message and status only on failure', async () => {
+    process.env.GEMINI_API_KEY = 'super_secret_user_api_key_xyz987';
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const mockError: any = new Error('Model gemini-3.8-flash not found or quota exhausted');
+    mockError.status = 404;
+    mockGenerateContent.mockRejectedValueOnce(mockError);
+
+    const req = new NextRequest('http://localhost:3000/api/plan', {
+      method: 'POST',
+      body: JSON.stringify(validPayload),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-forwarded-for': '127.0.0.6',
+      },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.source).toBe('deterministic_engine_fallback');
+
+    // Verify model was gemini-3.8-flash
+    expect(mockGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'gemini-3.8-flash',
+      })
+    );
+
+    // Verify console.error logged message and status but NEVER the secret API key
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    const loggedError = consoleErrorSpy.mock.calls.map((c) => c.join(' ')).join(' ');
+    expect(loggedError).toContain('404');
+    expect(loggedError).toContain('gemini-3.8-flash');
+    expect(loggedError).not.toContain('super_secret_user_api_key_xyz987');
+
+    consoleErrorSpy.mockRestore();
   });
 });

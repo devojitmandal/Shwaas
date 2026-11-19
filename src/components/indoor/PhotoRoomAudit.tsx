@@ -205,7 +205,7 @@ export default function PhotoRoomAudit({ outdoorPm25 }: PhotoRoomAuditProps) {
           <div className="p-4 rounded-xl bg-teal-50/80 border border-teal-200/90 text-xs text-teal-950 space-y-1">
             <div className="flex items-center gap-2 font-semibold text-teal-900">
               <CheckCircle2 className="w-4 h-4 text-teal-800" />
-              <span>Inspection Complete • Source: {auditResult.source === 'gemini_vision_audit' ? 'Gemini 2.5 Flash Vision' : 'Deterministic Mass-Balance Fallback'}</span>
+              <span>Inspection Complete • Source: {auditResult.source === 'gemini_vision_audit' ? 'Gemini 3.8 Flash Vision' : 'Deterministic Mass-Balance Fallback'}</span>
             </div>
             <p className="leading-relaxed pl-6">{auditResult.summary}</p>
           </div>

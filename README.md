@@ -21,7 +21,7 @@ Severe winter smog across urban India traps toxic fine particulate matter ($\tex
 ### 🛡️ The Deterministic Boundary Principle
 > **LLMs must NOT invent numbers.**
 > All numerical metrics — National AQI sub-indices, physical inhaled particulate mass in micrograms ($\mu\text{g}$), indoor single-zone mass-balance concentrations, and what-if percentages — are computed **exclusively** by deterministic, unit-tested mathematical engines (`src/lib/exposure/` and `src/lib/aqi/`).
-> Google Gemini 2.5 Flash (`gemini-2.5-flash`) acts strictly as a structured contextual communicator, receiving pre-calculated parameters and synthesizing empathetic behavioral protocols without fabricating statistics.
+> Google Gemini 3.8 Flash (`gemini-3.8-flash`) acts strictly as a structured contextual communicator, receiving pre-calculated parameters and synthesizing empathetic behavioral protocols without fabricating statistics.
 
 ---
 
@@ -37,7 +37,7 @@ Severe winter smog across urban India traps toxic fine particulate matter ($\tex
 - **Scientific Clarification:** Clearly labeled as a **relative lifestyle decision-support score**, not a clinical medical safety boundary.
 
 ### 2. AI Photo Room Audit (Envelope & Infiltration Inspection)
-- Server-side route (`POST /api/room-audit`) analyzing room photos using **Gemini 2.5 Flash Vision**.
+- Server-side route (`POST /api/room-audit`) analyzing room photos using **Gemini 3.8 Flash Vision**.
 - Identifies window perimeter gaps, cooking fuels, ventilation pathways, and indoor dust/incense sources.
 - **Physical Parameter Mapping:** Automatically translates visual observations into physical Air Exchange Rates ($\text{AER}: 0.35 - 1.80\,\text{h}^{-1}$) and indoor particulate emissions ($S: 100 - 8000\,\mu\text{g/h}$).
 - **Ranked Fixes in Budget Points:** Ranks prioritized home retrofits (e.g. foam weatherstripping tape, HEPA cleaner deployment, incense elimination) scored directly in Breath Budget points saved.
@@ -107,7 +107,7 @@ Severe winter smog across urban India traps toxic fine particulate matter ($\tex
                │                          │
                ▼                          ▼
 ┌──────────────────────────────┐   ┌─────────────────────┐
-│    GOOGLE GEMINI 2.5 FLASH   │   │ DETERMINISTIC RULE  │
+│    GOOGLE GEMINI 3.8 FLASH   │   │ DETERMINISTIC RULE  │
 │ - Strict Guardrails          │   │   FALLBACK ENGINE   │
 │ - Forced JSON Schema Output  │   │  (100% Deterministic│
 │ - Vision Room Audit Model    │   │   Zero Downtime)    │

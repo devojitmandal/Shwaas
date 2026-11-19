@@ -3,23 +3,25 @@ import { POST } from './route';
 import { NextRequest } from 'next/server';
 
 // Hoisted mock for @google/genai
+const mockVisionGenerateContent = vi.fn().mockResolvedValue({
+  text: JSON.stringify({
+    roomType: 'Master Bedroom',
+    windowGaps: 'open_drafty',
+    cookingSource: 'none_visible',
+    ventilationType: 'open_windows',
+    visibleDustSources: 'heavy_incense_dust',
+    observations: [
+      'Wide visible gap along lower window sash.',
+      'Incense stick stand on corner table.',
+    ],
+  }),
+});
+
 vi.mock('@google/genai', () => {
   return {
     GoogleGenAI: class {
       models = {
-        generateContent: vi.fn().mockResolvedValue({
-          text: JSON.stringify({
-            roomType: 'Master Bedroom',
-            windowGaps: 'open_drafty',
-            cookingSource: 'none_visible',
-            ventilationType: 'open_windows',
-            visibleDustSources: 'heavy_incense_dust',
-            observations: [
-              'Wide visible gap along lower window sash.',
-              'Incense stick stand on corner table.',
-            ],
-          }),
-        }),
+        generateContent: mockVisionGenerateContent,
       };
     },
   };
@@ -141,5 +143,47 @@ describe('Room Audit API Route Handler', () => {
     expect(data.audit.visibleDustSources).toBe('heavy_incense_dust');
     expect(data.audit.rankedFixes.length).toBeGreaterThan(0);
     expect(data.audit.summary).toContain('Air Exchange Rate of 1.8 h⁻¹');
+
+    // Verify model was gemini-3.8-flash
+    expect(mockVisionGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'gemini-3.8-flash',
+      })
+    );
+  });
+
+  it('logs error message and status only without leaking secret API key when vision throws', async () => {
+    process.env.GEMINI_API_KEY = 'super_secret_vision_key_abc123';
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const mockVisionErr: any = new Error('Vision quota exhausted on gemini-3.8-flash');
+    mockVisionErr.status = 429;
+    mockVisionGenerateContent.mockRejectedValueOnce(mockVisionErr);
+
+    const req = new NextRequest('http://localhost:3000/api/room-audit', {
+      method: 'POST',
+      body: JSON.stringify({
+        image: SAMPLE_BASE64_PNG,
+        mimeType: 'image/png',
+        outdoorPm25: 250,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-forwarded-for': '127.0.0.14',
+      },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.source).toBe('rule_based_fallback');
+
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    const loggedError = consoleErrorSpy.mock.calls.map((c) => c.join(' ')).join(' ');
+    expect(loggedError).toContain('429');
+    expect(loggedError).toContain('gemini-3.8-flash');
+    expect(loggedError).not.toContain('super_secret_vision_key_abc123');
+
+    consoleErrorSpy.mockRestore();
   });
 });

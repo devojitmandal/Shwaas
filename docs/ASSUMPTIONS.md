@@ -156,4 +156,4 @@ AirWise maintains transparent distinction across data layers:
 1. **Atmospheric Chemistry Models (Open-Meteo):** Seamless global coverage utilizing numerical weather prediction coupled with aerosol chemistry models (Copernicus CAMS, SILAM ensemble). Provides forecast trends and dispersion modeling.
 2. **Physical Ground Stations (CPCB/DPCC):** Continuous Ambient Air Quality Monitoring Stations (CAAQMS) providing localized regulatory point measurements.
 3. **Deterministic Mass Models:** Transparent mathematical physics equations linking ambient concentrations to microenvironments and respiratory volumes.
-4. **Google Gemini 2.5 Flash:** Acts strictly as a structured natural-language synthesizer and behavioral coach. Governed by JSON schema validation and deterministic fallbacks, Gemini is explicitly prevented from fabricating or altering numerical metrics.
+4. **Google Gemini 3.8 Flash:** Acts strictly as a structured natural-language synthesizer and behavioral coach. Governed by JSON schema validation and deterministic fallbacks, Gemini is explicitly prevented from fabricating or altering numerical metrics.

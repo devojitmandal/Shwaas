@@ -121,7 +121,7 @@ SCHEMA:
 }`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: process.env.GEMINI_MODEL ?? 'gemini-3.8-flash',
       contents: [
         {
           role: 'user',
@@ -169,7 +169,9 @@ SCHEMA:
     const audit = buildRoomAuditResult(visionResult.data, outdoorPm25, 'gemini_vision_audit');
     return NextResponse.json({ audit, source: 'gemini_vision_audit' });
   } catch (error) {
-    console.error('Gemini vision room audit error, activating fallback:', error);
+    const errMessage = error instanceof Error ? error.message : String(error);
+    const errStatus = (error as { status?: number | string })?.status;
+    console.error(`Gemini vision room audit failed [status: ${errStatus ?? 'N/A'}]: ${errMessage}`);
     const fallbackVision: RoomAuditVisionOutput = {
       roomType: 'Indoor Living Space',
       windowGaps: 'minor_gaps',

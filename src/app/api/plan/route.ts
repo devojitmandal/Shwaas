@@ -35,6 +35,8 @@ const planRequestSchema = z.object({
   language: z.enum(['en', 'hi', 'kn']).default('en'),
 });
 
+export const maxDuration = 30;
+
 export async function POST(req: NextRequest) {
   // 0. Payload Size Cap (64 KB)
   const contentLength = req.headers.get('content-length');
@@ -212,16 +214,16 @@ REQUIRED JSON STRUCTURE:
 }`;
 
     const generatePromise = ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: process.env.GEMINI_MODEL ?? 'gemini-3.8-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
       },
     });
 
-    // 8-second timeout guard to prevent thread blocking
+    // 20-second timeout guard to prevent thread blocking
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Gemini API call timed out after 8000ms')), 8000)
+      setTimeout(() => reject(new Error('Gemini API call timed out after 20000ms')), 20000)
     );
 
     const response = (await Promise.race([generatePromise, timeoutPromise])) as any;
@@ -253,7 +255,9 @@ REQUIRED JSON STRUCTURE:
       source: 'gemini_personalized',
     });
   } catch (error) {
-    console.error('Gemini API call failed, deploying fallback plan:', error);
+    const errMessage = error instanceof Error ? error.message : String(error);
+    const errStatus = (error as { status?: number | string })?.status;
+    console.error(`Gemini plan API call failed [status: ${errStatus ?? 'N/A'}]: ${errMessage}`);
     const fallback = generateFallbackPlan({
       cityName: sanitizedCityName,
       profile,
