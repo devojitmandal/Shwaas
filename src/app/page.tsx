@@ -16,6 +16,7 @@ import BreathBudgetTracker from '@/components/budget/BreathBudgetTracker';
 import WhatsAppShareCard from '@/components/share/WhatsAppShareCard';
 import CommunityModeModal from '@/components/community/CommunityModeModal';
 import IndoorAirModel from '@/components/indoor/IndoorAirModel';
+import PhotoRoomAudit from '@/components/indoor/PhotoRoomAudit';
 import MyImpactDashboard from '@/components/impact/MyImpactDashboard';
 
 import {
@@ -309,6 +310,9 @@ export default function Home() {
 
             {/* Physical Single-Zone Indoor Mass-Balance Room Modeling */}
             <IndoorAirModel outdoorPm25={airData.current.pm25} />
+
+            {/* AI Photo Room Audit for Infiltration & Sources */}
+            <PhotoRoomAudit outdoorPm25={airData.current.pm25} />
 
             {/* Measurable Impact Dashboard: Baseline vs Optimized Routine */}
             <MyImpactDashboard exposure={exposure} cityName={airData.cityName} />
