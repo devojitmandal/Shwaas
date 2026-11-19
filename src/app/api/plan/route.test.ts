@@ -97,4 +97,52 @@ describe('Plan API Route Handler', () => {
     const data = await res.json();
     expect(data.plan.headline).not.toContain('<script>');
   });
+
+  it('generates plan in Hindi when language is set to hi', async () => {
+    const hindiPayload = {
+      ...validPayload,
+      language: 'hi' as const,
+    };
+
+    const req = new NextRequest('http://localhost:3000/api/plan', {
+      method: 'POST',
+      body: JSON.stringify(hindiPayload),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-forwarded-for': '127.0.0.4',
+      },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.plan.headline).toContain('के लिए स्मॉग सुरक्षा कार्ययोजना');
+    expect(data.plan.disclaimer).toContain('चिकित्सीय सलाह नहीं है');
+    // Numbers still strictly deterministic
+    expect(data.exposure.totalInhaledMassUg).toBeGreaterThan(0);
+  });
+
+  it('generates plan in Kannada when language is set to kn', async () => {
+    const kannadaPayload = {
+      ...validPayload,
+      language: 'kn' as const,
+    };
+
+    const req = new NextRequest('http://localhost:3000/api/plan', {
+      method: 'POST',
+      body: JSON.stringify(kannadaPayload),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-forwarded-for': '127.0.0.5',
+      },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.plan.headline).toContain('ಹೊಗೆ ರಕ್ಷಣಾ ಯೋಜನೆ');
+    expect(data.plan.disclaimer).toContain('ವೈದ್ಯಕೀಯ ಸಲಹೆಯಲ್ಲ');
+    // Numbers still strictly deterministic
+    expect(data.exposure.totalInhaledMassUg).toBeGreaterThan(0);
+  });
 });

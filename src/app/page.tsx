@@ -30,9 +30,13 @@ import {
 } from '@/lib/validation/profileSchema';
 import { PlanResponse, generateFallbackPlan } from '@/lib/plan/planSchema';
 import { calculateDailyExposure, ExposureResult } from '@/lib/exposure/engine';
+import { SupportedLanguage, translations } from '@/lib/i18n/translations';
 import { Loader2, AlertCircle, Users } from 'lucide-react';
 
 export default function Home() {
+  // Localization state (en | hi | kn)
+  const [language, setLanguage] = useState<SupportedLanguage>('en');
+
   // Location & AQI state
   const [currentLocation, setCurrentLocation] = useState({
     name: 'Delhi, India',
@@ -81,7 +85,7 @@ export default function Home() {
 
   // Request or compute plan when air data or profile updates
   const loadPlan = useCallback(
-    async (currentAir: ProcessedAirQuality, currentProf: HouseholdProfile) => {
+    async (currentAir: ProcessedAirQuality, currentProf: HouseholdProfile, currentLang: SupportedLanguage = 'en') => {
       setIsPlanLoading(true);
 
       // Deterministic pre-calculation
@@ -111,6 +115,7 @@ export default function Home() {
             worstWindow: currentAir.worstWindow,
             noSafeWindowAvailable: currentAir.windowRecommendations?.noSafeWindowAvailable ?? false,
             alertHeadline: currentAir.windowRecommendations?.alertHeadline,
+            language: currentLang,
           }),
         });
 
@@ -129,6 +134,7 @@ export default function Home() {
             worstWindow: currentAir.worstWindow,
             noSafeWindowAvailable: currentAir.windowRecommendations?.noSafeWindowAvailable,
             alertHeadline: currentAir.windowRecommendations?.alertHeadline,
+            language: currentLang,
           });
           setPlan(fallback);
           setPlanSource('deterministic_engine_fallback');
@@ -143,6 +149,7 @@ export default function Home() {
           worstWindow: currentAir.worstWindow,
           noSafeWindowAvailable: currentAir.windowRecommendations?.noSafeWindowAvailable,
           alertHeadline: currentAir.windowRecommendations?.alertHeadline,
+          language: currentLang,
         });
         setPlan(fallback);
         setPlanSource('deterministic_engine_fallback');
@@ -155,9 +162,9 @@ export default function Home() {
 
   useEffect(() => {
     if (airData) {
-      loadPlan(airData, profile);
+      loadPlan(airData, profile, language);
     }
-  }, [airData, profile, loadPlan]);
+  }, [airData, profile, language, loadPlan]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-teal-100 selection:text-teal-900">
@@ -165,13 +172,21 @@ export default function Home() {
       <Header
         onCommunityClick={() => setIsCommunityModalOpen(true)}
         onProfileClick={() => setIsProfileModalOpen(true)}
+        language={language}
+        onLanguageChange={setLanguage}
       />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pb-24 space-y-10">
         {/* Hero Section */}
         <HeroTitle
-          title="Shwaas: हर सांस का हिसाब"
-          subtitle="A deterministic GenAI assistant helping families and communities navigate severe winter smog with personal breath budgets, room air modeling, and quantified exposure reductions."
+          title={
+            language === 'hi'
+              ? 'श्वास: हर सांस का हिसाब'
+              : language === 'kn'
+              ? 'ಶ್ವಾಸ: ಪ್ರತಿ ಉಸಿರಿನ ಲೆಕ್ಕ'
+              : 'Shwaas: Every Breath Accounted For'
+          }
+          subtitle={translations[language].heroSubtitle}
         />
 
         {/* Location Selector & Geolocation */}

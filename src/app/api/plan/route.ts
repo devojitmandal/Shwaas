@@ -32,6 +32,7 @@ const planRequestSchema = z.object({
     advisory: z.string(),
   }),
   noSafeWindowAvailable: z.boolean().optional(),
+  language: z.enum(['en', 'hi', 'kn']).default('en'),
 });
 
 export async function POST(req: NextRequest) {
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { profile, aqi, pm25, cityName, bestWindow, worstWindow, noSafeWindowAvailable } = parseResult.data;
+  const { profile, aqi, pm25, cityName, bestWindow, worstWindow, noSafeWindowAvailable, language = 'en' } = parseResult.data;
 
   // Sanitize cityName to prevent prompt injection vectors
   const sanitizedCityName =
@@ -125,6 +126,7 @@ export async function POST(req: NextRequest) {
       bestWindow: normalizedBestWindow,
       worstWindow: normalizedWorstWindow,
       noSafeWindowAvailable,
+      language,
     });
     return NextResponse.json({
       plan: fallbackPlan,
@@ -137,7 +139,16 @@ export async function POST(req: NextRequest) {
   try {
     const ai = new GoogleGenAI({ apiKey });
 
+    const languageInstruction =
+      language === 'hi'
+        ? 'LANGUAGE REQUIREMENT: Write all text fields (headline, executiveSummary, dailyBriefing, recommendedActivitySchedule, title, action, rationale, instructions, mythCheck, advice, communityAction, disclaimer) in natural, idiomatic HINDI using Devanagari script (हिन्दी).'
+        : language === 'kn'
+        ? 'LANGUAGE REQUIREMENT: Write all text fields (headline, executiveSummary, dailyBriefing, recommendedActivitySchedule, title, action, rationale, instructions, mythCheck, advice, communityAction, disclaimer) in natural, idiomatic KANNADA using Kannada script (ಕನ್ನಡ).'
+        : 'LANGUAGE REQUIREMENT: Write all text fields in clear, actionable ENGLISH.';
+
     const prompt = `You are Shwaas (श्वास — हर सांस का हिसाब), an urban air quality assistant helping families navigate severe winter smog.
+
+${languageInstruction}
 
 CRITICAL ANTI-HALLUCINATION INSTRUCTIONS:
 - You must NOT invent, guess, or fabricate any numerical metrics, AQI values, or percentages.

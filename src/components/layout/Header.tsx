@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { motion, useScroll, useMotionValueEvent, useReducedMotion } from 'framer-motion';
 import { Wind, Users, Compass } from 'lucide-react';
+import { SupportedLanguage } from '@/lib/i18n/translations';
 
 const TOP_ZONE = 80;
 const HIDE_AFTER = 50;
@@ -11,9 +12,16 @@ const SHOW_AFTER = 15;
 interface HeaderProps {
   onCommunityClick?: () => void;
   onProfileClick?: () => void;
+  language?: SupportedLanguage;
+  onLanguageChange?: (lang: SupportedLanguage) => void;
 }
 
-export default function Header({ onCommunityClick, onProfileClick }: HeaderProps) {
+export default function Header({
+  onCommunityClick,
+  onProfileClick,
+  language = 'en',
+  onLanguageChange,
+}: HeaderProps) {
   const { scrollY } = useScroll();
   const reduce = useReducedMotion();
   const [hidden, setHidden] = useState(false);
@@ -60,7 +68,47 @@ export default function Header({ onCommunityClick, onProfileClick }: HeaderProps
           </div>
         </div>
 
-        <nav aria-label="Main Navigation" className="flex items-center gap-2 sm:gap-4 text-xs font-medium">
+        <nav aria-label="Main Navigation" className="flex items-center gap-2 sm:gap-3 text-xs font-medium">
+          {/* Language Switcher */}
+          <div className="flex items-center bg-slate-100 rounded-full p-0.5 border border-slate-200" role="group" aria-label="Language selector">
+            <button
+              type="button"
+              onClick={() => onLanguageChange?.('en')}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                language === 'en'
+                  ? 'bg-teal-800 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              aria-pressed={language === 'en'}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              onClick={() => onLanguageChange?.('hi')}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                language === 'hi'
+                  ? 'bg-teal-800 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              aria-pressed={language === 'hi'}
+            >
+              हिन्दी
+            </button>
+            <button
+              type="button"
+              onClick={() => onLanguageChange?.('kn')}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                language === 'kn'
+                  ? 'bg-teal-800 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              aria-pressed={language === 'kn'}
+            >
+              ಕನ್ನಡ
+            </button>
+          </div>
+
           <button
             onClick={onProfileClick}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-slate-700 hover:text-slate-950 hover:bg-slate-200/60 transition-colors focus-visible:outline-2 focus-visible:outline-teal-800"
@@ -74,7 +122,7 @@ export default function Header({ onCommunityClick, onProfileClick }: HeaderProps
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-teal-900 hover:bg-teal-100 transition-colors focus-visible:outline-2 focus-visible:outline-teal-800"
           >
             <Users className="w-4 h-4 text-teal-800" aria-hidden="true" />
-            <span>Community Mode</span>
+            <span className="hidden sm:inline">Community Mode</span>
           </button>
         </nav>
       </div>

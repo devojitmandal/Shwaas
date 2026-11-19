@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { PlanResponse } from '@/lib/plan/planSchema';
 import {
   Sparkles,
@@ -8,6 +9,8 @@ import {
   HeartHandshake,
   RefreshCw,
   Info,
+  Volume2,
+  Square,
 } from 'lucide-react';
 
 interface TodaysPlanViewProps {
@@ -23,6 +26,51 @@ export default function TodaysPlanView({
   onRefresh,
   source,
 }: TodaysPlanViewProps) {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const handleToggleReadAloud = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      alert('Speech synthesis is not supported on this browser.');
+      return;
+    }
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const hasDevanagari = /[\u0900-\u097F]/.test(plan.headline);
+    const hasKannada = /[\u0C80-\u0CFF]/.test(plan.headline);
+    const langCode = hasDevanagari ? 'hi-IN' : hasKannada ? 'kn-IN' : 'en-IN';
+
+    const textToRead = `${plan.headline}. ${plan.executiveSummary}. ${plan.dailyBriefing || ''}`;
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.lang = langCode;
+    utterance.rate = 0.95;
+
+    const voices = window.speechSynthesis.getVoices();
+    const matchedVoice = voices.find((v) => v.lang.startsWith(langCode.substring(0, 2)));
+    if (matchedVoice) {
+      utterance.voice = matchedVoice;
+    }
+
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
   return (
     <div className="space-y-6">
       {/* Plan Header Card */}
@@ -49,16 +97,41 @@ export default function TodaysPlanView({
             </p>
           </div>
 
-          {onRefresh && (
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
             <button
-              onClick={onRefresh}
-              disabled={isLoading}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shrink-0 shadow-2xs focus-visible:outline-2 focus-visible:outline-teal-800 disabled:opacity-50"
+              type="button"
+              onClick={handleToggleReadAloud}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-xs font-semibold transition-all shadow-2xs focus-visible:outline-2 focus-visible:outline-teal-800 ${
+                isSpeaking
+                  ? 'bg-rose-50 border-rose-300 text-rose-800'
+                  : 'border-slate-300 bg-white hover:bg-slate-50 text-slate-700'
+              }`}
+              aria-label={isSpeaking ? 'Stop reading plan aloud' : 'Read plan aloud using text-to-speech'}
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-teal-800 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>{isLoading ? 'Updating...' : 'Regenerate Plan'}</span>
+              {isSpeaking ? (
+                <>
+                  <Square className="w-3.5 h-3.5 text-rose-700 fill-current animate-pulse" />
+                  <span>Stop Reading</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-3.5 h-3.5 text-teal-800" />
+                  <span>Read Aloud</span>
+                </>
+              )}
             </button>
-          )}
+
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={isLoading}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-2xs focus-visible:outline-2 focus-visible:outline-teal-800 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-teal-800 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>{isLoading ? 'Updating...' : 'Regenerate Plan'}</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Sensitive Group Alert Banner */}
