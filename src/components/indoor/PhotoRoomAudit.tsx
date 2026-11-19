@@ -1,11 +1,53 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Camera, Upload, AlertCircle, CheckCircle2, Sparkles, Loader2, Wrench, ShieldAlert } from 'lucide-react';
+import { Camera, Upload, AlertCircle, CheckCircle2, Sparkles, Loader2, Wrench, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { RoomAuditResult } from '@/lib/audit/roomAuditSchema';
 
 interface PhotoRoomAuditProps {
   outdoorPm25: number;
+}
+
+function compressImage(file: File): Promise<{ dataUrl: string; mimeType: 'image/jpeg' }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read image file.'));
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Failed to decode image.'));
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        const maxSide = 1280;
+
+        if (width > maxSide || height > maxSide) {
+          if (width > height) {
+            height = Math.round((height * maxSide) / width);
+            width = maxSide;
+          } else {
+            width = Math.round((width * maxSide) / height);
+            height = maxSide;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context.'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        // Drawing to canvas and re-encoding strips EXIF, GPS, and metadata
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        resolve({ dataUrl, mimeType: 'image/jpeg' });
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function PhotoRoomAudit({ outdoorPm25 }: PhotoRoomAuditProps) {
@@ -16,7 +58,7 @@ export default function PhotoRoomAudit({ outdoorPm25 }: PhotoRoomAuditProps) {
   const [auditResult, setAuditResult] = useState<RoomAuditResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -33,23 +75,21 @@ export default function PhotoRoomAudit({ outdoorPm25 }: PhotoRoomAuditProps) {
       return;
     }
 
-    // Validate size (max 4MB)
-    if (file.size > 4 * 1024 * 1024) {
-      setError('Photo exceeds the 4MB limit. Please upload a compressed or smaller photo.');
+    // Validate size (max 10MB raw before canvas compression)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Photo exceeds the 10MB limit. Please choose a smaller photo.');
       return;
     }
 
-    setMimeType(file.type as 'image/jpeg' | 'image/png' | 'image/webp');
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImagePreview(reader.result as string);
+    try {
+      // Resize to max 1280px longest side, JPEG 0.8 quality, stripping EXIF/GPS metadata
+      const { dataUrl, mimeType: compressedMime } = await compressImage(file);
+      setImagePreview(dataUrl);
+      setMimeType(compressedMime);
       setAuditResult(null);
-    };
-    reader.onerror = () => {
-      setError('Failed to read the image file.');
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      setError('Failed to process and compress the image file.');
+    }
   };
 
   const handleRunAudit = async () => {
@@ -148,7 +188,11 @@ export default function PhotoRoomAudit({ outdoorPm25 }: PhotoRoomAuditProps) {
               Click to upload or take a room photo
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
-              Supports JPEG, PNG, WebP up to 4MB (Window frames, doors, kitchen stove)
+              Auto-compressed to 1280px (EXIF stripped) • Supports JPEG, PNG, WebP
+            </p>
+            <p className="text-[11px] text-slate-500 mt-2 flex items-center justify-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-teal-800 shrink-0" aria-hidden="true" />
+              <span>Photo is analyzed and not stored.</span>
             </p>
           </div>
         </div>
@@ -165,6 +209,10 @@ export default function PhotoRoomAudit({ outdoorPm25 }: PhotoRoomAuditProps) {
               <span className="text-xs font-semibold text-slate-700 block">Photo Ready for Inspection</span>
               <p className="text-xs text-slate-500">
                 Current Ambient PM2.5 Baseline: <strong className="font-mono text-slate-800">{outdoorPm25} µg/m³</strong>
+              </p>
+              <p className="text-[11px] text-slate-500 flex items-center justify-center sm:justify-start gap-1.5 pt-0.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-teal-800 shrink-0" aria-hidden="true" />
+                <span>Photo is analyzed and not stored.</span>
               </p>
               {!auditResult && !isLoading && (
                 <button
