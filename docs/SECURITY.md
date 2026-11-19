@@ -1,10 +1,10 @@
-# AirWise: Security & Privacy Architecture
+# Shwaas: Security & Privacy Architecture
 
-This document outlines the security controls, privacy guarantees, data flow boundaries, and defensive architecture implemented across AirWise.
+This document outlines the security controls, privacy guarantees, data flow boundaries, and defensive architecture implemented across Shwaas.
 
 ---
 
-## 1. Zero-Trust Input Validation & Sanitization (Zod)
+## 1. Input Validation & Sanitization (Zod)
 
 Every boundary where external data enters the application enforces strict runtime type validation and sanitization:
 
@@ -50,8 +50,8 @@ To prevent API abuse, denial-of-service, and quota exhaustion:
 Configured in `next.config.ts` for all route responses:
 - **Content-Security-Policy (CSP):**
   - `default-src 'self'`
-  - `script-src 'self' 'unsafe-eval' 'unsafe-inline'`
-  - `style-src 'self' 'unsafe-inline'`
+  - `script-src 'self' 'unsafe-eval' 'unsafe-inline'` *(accommodates Next.js App Router client runtime hydration and Turbopack bundling)*
+  - `style-src 'self' 'unsafe-inline'` *(permits framework CSS token injection)*
   - `img-src 'self' blob: data: https:`
   - `font-src 'self' data:`
   - `connect-src 'self' https://air-quality-api.open-meteo.com https://api.open-meteo.com https://geocoding-api.open-meteo.com https://generativelanguage.googleapis.com`
@@ -69,9 +69,9 @@ Configured in `next.config.ts` for all route responses:
 
 ## 5. Client-Side Privacy Guarantee
 
-- **No User Database or Accounts:** AirWise does not operate a user database or store session cookies.
+- **No User Database or Accounts:** Shwaas does not operate a user database or store session cookies.
 - **Local Storage Isolation:** Household compositions, children/elderly member numbers, and commute types are saved exclusively inside the user's browser `localStorage` (`airwise_household_profile_v1`).
-- **No Personally Identifiable Health Records:** AirWise never asks for names, addresses, phone numbers, or clinical diagnoses. Calculations run purely on generic lifestyle and environmental variables.
+- **No Personally Identifiable Health Records:** Shwaas never asks for names, addresses, phone numbers, or clinical diagnoses. Calculations run purely on generic lifestyle and environmental variables.
 
 ---
 

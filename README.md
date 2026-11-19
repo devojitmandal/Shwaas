@@ -5,10 +5,10 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16_App_Router-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4_Tokens-38bdf8?style=flat&logo=tailwindcss)](https://tailwindcss.com/)
-[![Vitest](https://img.shields.io/badge/Vitest-48%2F48_Tests_Passing-729B1B?style=flat&logo=vitest)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-51%2F51_Tests_Passing-729B1B?style=flat&logo=vitest)](https://vitest.dev/)
 [![CPCB NAQI](https://img.shields.io/badge/Air_Standard-CPCB_India_NAQI-0E7490?style=flat)](https://cpcb.nic.in/)
 [![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG_2.1_AA-success?style=flat)](https://www.w3.org/WAI/WCAG21/AA/)
-[![CSP Compliant](https://img.shields.io/badge/Security-CSP_Headers_Active-15803D?style=flat)](docs/SECURITY.md)
+[![CSP Configured](https://img.shields.io/badge/Security-CSP_Headers_Active-15803D?style=flat)](docs/SECURITY.md)
 
 ---
 
@@ -77,6 +77,16 @@ Severe winter smog across urban India traps toxic fine particulate matter ($\tex
   1. **Residential Welfare Associations (RWAs):** Distribute electric heaters to night guards to eliminate toxic open garbage fires; wet-mop common driveways.
   2. **Schools & Daycares:** Cancel morning outdoor assemblies; seal classroom windows.
   3. **Local Action:** Report illegal industrial waste burning to authorities.
+
+### 10. Security & Content Security Policy (CSP)
+- **Active HTTP Security Headers:** Configured in `next.config.ts` (`Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Permissions-Policy`).
+- **Accurate CSP Specification:**
+  - `default-src 'self'`
+  - `script-src 'self' 'unsafe-eval' 'unsafe-inline'` *(accommodates Next.js App Router client-side runtime hydration and Turbopack bundling)*
+  - `style-src 'self' 'unsafe-inline'` *(permits framework CSS token injection)*
+  - `connect-src 'self' https://air-quality-api.open-meteo.com https://api.open-meteo.com https://geocoding-api.open-meteo.com https://generativelanguage.googleapis.com`
+  - `img-src 'self' blob: data: https:`
+  - `object-src 'none'`, `frame-ancestors 'none'`, and `upgrade-insecure-requests`.
 
 ---
 
