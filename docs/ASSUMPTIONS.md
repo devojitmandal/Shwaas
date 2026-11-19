@@ -134,12 +134,16 @@ Rather than assuming afternoon hours are universally cleaner, AirWise analyzes m
 3. **Relative Humidity:** Humidity $> 80\%$ combined with low temperatures accelerates hygroscopic particle growth and secondary aerosol formation (winter radiation fog/smog).
 4. **Solar Radiation & Thermal Dispersion:** Planetary boundary layer (PBL) height expands significantly during daylight insolation (12:00 PM – 3:30 PM), diluting ground-level particulate plumes.
 
-### 5.2 No-Safe-Window Smog Lock Detection
-When all 24 hours in a forecast exceed **300 NAQI (Very Poor / Severe)** or all candidate windows exceed **150 $\mu\text{g/m}^3$ PM2.5**, AirWise does NOT claim an afternoon window is "safe". Instead:
-- Sets `isSafe: false` on the window.
-- Flags `noSafeWindowAvailable: true`.
-- Emits high-visibility alerts: *"Severe Smog Lockout: No Safe Outdoor Windows Today. All hours present hazardous pollutant burdens."*
-- Recommends complete indoor sheltering with mechanical filtration and canceling non-essential errands.
+### 5.2 Severe Smog Lockout Protocol (NAQI > 300 for All 24 Hours)
+AirWise implements a strict single-threshold criterion for Severe Smog Lockouts:
+- **Single Quantitative Trigger:** When every single hour across the 24-hour diurnal forecast has an NAQI exceeding **300 (Very Poor / Severe)** (`hourly.every(h => h.aqi > 300)`).
+- **Behavior:**
+  - Flags `noSafeWindowAvailable: true`.
+  - Sets `isSafe: false` on all candidate windows.
+  - Emits high-visibility alert: *"CRITICAL SMOG LOCKOUT: NAQI > 300 for All 24 Hours"*.
+  - Explicitly informs users that the designated window is merely the *least-polluted interval*, not a medically safe threshold.
+  - Instructs complete indoor sheltering with continuous mechanical filtration, sealing window envelopes, and canceling non-essential errands.
+  - If even a single hour dips to $\le 300$, lockout is inactive and standard dynamic ranking applies.
 
 ---
 

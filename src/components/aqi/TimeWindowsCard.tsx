@@ -41,10 +41,10 @@ export default function TimeWindowsCard({
           <AlertTriangle className="w-5 h-5 text-rose-700 shrink-0 mt-0.5" aria-hidden="true" />
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-rose-900">
-              {alertHeadline || 'Critical Smog Alert: No Safe Outdoor Window Today'}
+              {alertHeadline || 'Critical Smog Lockout: NAQI > 300 for All 24 Hours'}
             </h4>
             <p className="text-xs text-rose-800 mt-0.5 leading-relaxed">
-              Every hour today is projected in hazardous or very poor pollution bands. The window recommended below is merely the <em>least-polluted interval</em>—not a safe threshold. Cancel sports and postpone non-urgent travel.
+              Every single hour today has projected NAQI &gt; 300 (Very Poor / Severe). No safe outdoor window exists today. The window recommended below is merely the <em>least-polluted interval</em>—not a safe threshold. Cancel sports and postpone non-urgent travel.
             </p>
           </div>
         </div>

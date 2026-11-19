@@ -194,16 +194,16 @@ export function analyzeDynamicWindows(hourly: HourlyAqiPoint[]): WindowRecommend
   const bestAvailable = candidateWindows[0] || fallbackWindow;
   const worst = candidateWindows[candidateWindows.length - 1] || fallbackWindow;
 
-  // Check if entire day is severely polluted
-  const allWindowsHeavy = candidateWindows.every((w) => w.averageAqi > 200 || w.averagePm25 > 100);
+  // Severe Smog Lockout: NAQI > 300 for all 24 hours (single threshold)
+  const isLockoutActive = hourly.length > 0 && hourly.every((h) => h.aqi > 300);
 
   let alertHeadline = 'Dynamic Activity Window Identified';
-  if (allWindowsHeavy) {
-    alertHeadline = 'CRITICAL SMOG ALERT: No Safe Outdoor Window Today';
+  if (isLockoutActive) {
+    alertHeadline = 'CRITICAL SMOG LOCKOUT: NAQI > 300 for All 24 Hours';
     bestAvailable.advisory =
-      'Even the cleanest window remains heavily polluted. Postpone non-essential outdoor travel and keep children indoors.';
+      'Severe Smog Lockout: NAQI exceeds 300 across all 24 hours. No safe outdoor window exists today. Cancel all outdoor activities and seal indoor clean rooms.';
     bestAvailable.reasoning.unshift(
-      'Notice: No safe threshold exists today; this is merely the least-polluted available interval.'
+      'Notice: Severe Smog Lockout (NAQI > 300 across all 24 hours). This interval is merely the least-polluted available time, not a safe threshold.'
     );
   } else if (!bestAvailable.isSafe) {
     alertHeadline = 'Caution: Only Moderately Polluted Windows Available';
@@ -215,7 +215,7 @@ export function analyzeDynamicWindows(hourly: HourlyAqiPoint[]): WindowRecommend
     bestAvailableWindow: bestAvailable,
     worstWindow: worst,
     rankedWindows: candidateWindows.slice(0, 5),
-    noSafeWindowAvailable: allWindowsHeavy,
+    noSafeWindowAvailable: isLockoutActive,
     alertHeadline,
     forecastConfidence: 'Model Estimate',
     dataProvenance: 'Open-Meteo Atmospheric Chemistry Model (CAMS/ECMWF)',

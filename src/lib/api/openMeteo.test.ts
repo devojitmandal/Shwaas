@@ -45,23 +45,37 @@ describe('Multi-Factor Dynamic Window Analysis Engine', () => {
     expect(recs.dataProvenance).toContain('Open-Meteo');
   });
 
-  it('detects severe smog days where NO genuinely safe window exists and warns user', () => {
-    // 24 hours of severe pollution (>250 µg/m³) all day
-    const severeHours: HourlyAqiPoint[] = Array.from({ length: 8 }, (_, i) => ({
-      time: `2026-11-19T${10 + i}:00`,
-      pm25: 310 + i * 5,
+  it('detects severe smog lockout when NAQI > 300 for all 24 hours and warns user', () => {
+    // 24 hours of severe pollution with AQI > 300 all day
+    const severeHours: HourlyAqiPoint[] = Array.from({ length: 24 }, (_, i) => ({
+      time: `2026-11-19T${String(i).padStart(2, '0')}:00`,
+      pm25: 310 + (i % 5) * 5,
       pm10: 450,
-      aqi: 440,
-      category: 'Severe',
+      aqi: 380,
+      category: 'Very Poor',
       windSpeedKmh: 1.2,
       temperatureC: 16,
     }));
 
     const result = analyzeDynamicWindows(severeHours);
     expect(result.noSafeWindowAvailable).toBe(true);
-    expect(result.alertHeadline).toContain('No Safe Outdoor Window Today');
+    expect(result.alertHeadline).toContain('NAQI > 300 for All 24 Hours');
     expect(result.bestAvailableWindow.isSafe).toBe(false);
-    expect(result.bestAvailableWindow.advisory).toContain('Postpone non-essential outdoor travel');
+    expect(result.bestAvailableWindow.advisory).toContain('Severe Smog Lockout');
+  });
+
+  it('does NOT trigger severe smog lockout if at least one hour dips to NAQI <= 300', () => {
+    // 23 hours of >300, but 1 afternoon hour dips to 260 (Poor, <= 300)
+    const mixedHours: HourlyAqiPoint[] = Array.from({ length: 24 }, (_, i) => ({
+      time: `2026-11-19T${String(i).padStart(2, '0')}:00`,
+      pm25: i === 13 ? 100 : 320,
+      pm10: i === 13 ? 200 : 450,
+      aqi: i === 13 ? 260 : 350,
+      category: i === 13 ? 'Poor' : 'Very Poor',
+    }));
+
+    const result = analyzeDynamicWindows(mixedHours);
+    expect(result.noSafeWindowAvailable).toBe(false);
   });
 
   it('gracefully degrades when weather arrays (wind/temp) are missing or empty', () => {
