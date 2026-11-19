@@ -206,4 +206,28 @@ describe('Plan API Route Handler', () => {
 
     consoleErrorSpy.mockRestore();
   });
+
+  it('returns a Hindi fallback plan when Gemini call fails and language is hi', async () => {
+    process.env.GEMINI_API_KEY = 'test_key';
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockGenerateContent.mockRejectedValueOnce(new Error('Upstream Gemini failure'));
+
+    const req = new NextRequest('http://localhost:3000/api/plan', {
+      method: 'POST',
+      body: JSON.stringify({ ...validPayload, language: 'hi' }),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-forwarded-for': '127.0.0.7',
+      },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.source).toBe('deterministic_engine_fallback');
+    expect(data.plan.headline).toContain('के लिए स्मॉग सुरक्षा कार्ययोजना');
+    expect(data.plan.disclaimer).toContain('चिकित्सीय सलाह नहीं है');
+
+    consoleErrorSpy.mockRestore();
+  });
 });

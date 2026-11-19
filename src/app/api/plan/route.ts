@@ -14,22 +14,22 @@ const planRequestSchema = z.object({
   pm25: z.number().min(0),
   cityName: z.string().min(1).max(100),
   bestWindow: z.object({
-    startTime: z.string(),
-    endTime: z.string(),
+    startTime: z.string().max(40),
+    endTime: z.string().max(40),
     averageAqi: z.number(),
     averagePm25: z.number().optional(),
     category: z.enum(['Good', 'Satisfactory', 'Moderate', 'Poor', 'Very Poor', 'Severe']),
-    advisory: z.string(),
-    reasoning: z.array(z.string()).optional(),
+    advisory: z.string().max(300),
+    reasoning: z.array(z.string().max(300)).optional(),
     isSafe: z.boolean().optional(),
   }),
   worstWindow: z.object({
-    startTime: z.string(),
-    endTime: z.string(),
+    startTime: z.string().max(40),
+    endTime: z.string().max(40),
     averageAqi: z.number(),
     averagePm25: z.number().optional(),
     category: z.enum(['Good', 'Satisfactory', 'Moderate', 'Poor', 'Very Poor', 'Severe']),
-    advisory: z.string(),
+    advisory: z.string().max(300),
   }),
   noSafeWindowAvailable: z.boolean().optional(),
   language: z.enum(['en', 'hi', 'kn']).default('en'),
@@ -162,7 +162,7 @@ CRITICAL ANTI-HALLUCINATION INSTRUCTIONS:
 - Output MUST strictly be valid JSON conforming to the requested schema.
 
 DETERMINISTIC ENGINE DATA:
-- City: ${cityName}
+- City: ${sanitizedCityName}
 - Current CPCB NAQI: ${aqi} (${exposure.naqiCategory})
 - Ambient PM2.5: ${pm25} µg/m³
 - Total Daily Inhaled PM2.5 Mass Intake: ~${exposure.totalInhaledMassUg} µg/day
@@ -226,7 +226,10 @@ REQUIRED JSON STRUCTURE:
       setTimeout(() => reject(new Error('Gemini API call timed out after 20000ms')), 20000)
     );
 
-    const response = (await Promise.race([generatePromise, timeoutPromise])) as any;
+    const response: Awaited<ReturnType<typeof ai.models.generateContent>> = await Promise.race([
+      generatePromise,
+      timeoutPromise,
+    ]);
 
     const responseText = response.text?.trim() || '';
     const parsedJson = JSON.parse(responseText);
@@ -241,6 +244,7 @@ REQUIRED JSON STRUCTURE:
         bestWindow: normalizedBestWindow,
         worstWindow: normalizedWorstWindow,
         noSafeWindowAvailable,
+        language,
       });
       return NextResponse.json({
         plan: fallback,
@@ -265,6 +269,7 @@ REQUIRED JSON STRUCTURE:
       bestWindow: normalizedBestWindow,
       worstWindow: normalizedWorstWindow,
       noSafeWindowAvailable,
+      language,
     });
     return NextResponse.json({
       plan: fallback,
