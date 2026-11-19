@@ -198,3 +198,258 @@ export function calculateBreathBudget(params: CalculateBudgetParams): BreathBudg
     calculationAssumptions,
   };
 }
+
+// ==========================================
+// PER-PERSON BREATH BUDGET MODEL
+// ==========================================
+
+export type HouseholdMemberType = 'child' | 'adult' | 'senior';
+
+export interface WhatIfBudgetOverrides {
+  maskType?: MaskType;
+  hasPurifier?: boolean;
+  commuteType?: CommuteType;
+  shiftedWindow?: boolean; // shift errands to cleaner afternoon window
+}
+
+export interface MemberBudgetParams {
+  memberType: HouseholdMemberType;
+  label: string;
+  ageCategory: string;
+  currentPm25: number;
+  hourlyPm25Forecast?: number[];
+  outdoorHours: number;
+  maskType: MaskType;
+  commuteType: CommuteType;
+  hasPurifier: boolean;
+  whatIfOverrides?: WhatIfBudgetOverrides;
+}
+
+export interface MemberBudgetResult {
+  memberType: HouseholdMemberType;
+  label: string;
+  ageCategory: string;
+  sedentaryBreathingRate: number;
+  activeBreathingRate: number;
+  referenceDailyMassUg: number;
+  inhaledMassUg: number;
+  avoidedMassUg: number;
+  pointsSpent: number;
+  remainingPoints: number;
+  percentageOfBudget: number;
+  status: 'Within Reference Range' | 'Moderate Elevation' | 'Severe Particle Burden';
+  statusColor: string;
+  statusTextColor: string;
+  vulnerabilityNote: string;
+}
+
+export const AGE_APPROPRIATE_RATES: Record<
+  HouseholdMemberType,
+  {
+    sedentary: number;
+    active: number;
+    referenceDailyMassUg: number;
+    vulnerabilityNote: string;
+  }
+> = {
+  child: {
+    sedentary: 0.35,
+    active: 0.85,
+    referenceDailyMassUg: 144, // 24h at 15 µg/m³ with child average 0.40 m³/h = 144 µg
+    vulnerabilityNote: 'Developing respiratory airways. 1.3x higher aerosol surface deposition relative to lung capacity.',
+  },
+  adult: {
+    sedentary: 0.55,
+    active: 1.40,
+    referenceDailyMassUg: 216, // 24h at 15 µg/m³ with adult average 0.60 m³/h = 216 µg
+    vulnerabilityNote: 'Standard adult physiological baseline calibrated to EPA Exposure Factors Handbook.',
+  },
+  senior: {
+    sedentary: 0.45,
+    active: 0.95,
+    referenceDailyMassUg: 172, // 24h at 15 µg/m³ with senior average 0.48 m³/h = 172 µg
+    vulnerabilityNote: 'Reduced mucociliary clearance rate and elevated cardiovascular susceptibility to fine soot.',
+  },
+};
+
+export function calculateMemberBudget(params: MemberBudgetParams): MemberBudgetResult {
+  const {
+    memberType,
+    label,
+    ageCategory,
+    currentPm25,
+    hourlyPm25Forecast = [],
+    outdoorHours,
+    maskType,
+    commuteType,
+    hasPurifier,
+    whatIfOverrides = {},
+  } = params;
+
+  const rates = AGE_APPROPRIATE_RATES[memberType];
+
+  // Resolve what-if interventions
+  const activeMask: MaskType = whatIfOverrides.maskType ?? maskType;
+  const activePurifier: boolean =
+    whatIfOverrides.hasPurifier !== undefined ? whatIfOverrides.hasPurifier : hasPurifier;
+  const activeCommute: CommuteType = whatIfOverrides.commuteType ?? commuteType;
+  const isShifted: boolean = whatIfOverrides.shiftedWindow ?? false;
+
+  const hoursOut = Math.max(0, Math.min(24, outdoorHours));
+  const hoursIn = Math.max(0, 24 - hoursOut);
+
+  // Scheduled outdoor ambient PM2.5 (13:00 for afternoon vs 08:00 morning peak)
+  const outdoorHourIdx = isShifted ? 13 : 8;
+  const ambientOutdoorPm25 =
+    hourlyPm25Forecast.length > outdoorHourIdx
+      ? Math.max(5, hourlyPm25Forecast[outdoorHourIdx])
+      : Math.max(5, isShifted ? currentPm25 * 0.65 : currentPm25);
+
+  // Mask penetration factor (accounting for typical 15-20% seal leakage for N95)
+  const maskPen = MASK_PENETRATION_FACTORS[activeMask]?.['typical_fit'] ?? 1.0;
+
+  // Commute corridor factor
+  let transitMultiplier = 1.0;
+  if (activeCommute === 'two_wheeler') transitMultiplier = 1.35;
+  else if (activeCommute === 'car_ac') transitMultiplier = 0.35;
+  else if (activeCommute === 'metro_bus_transit') transitMultiplier = 0.45;
+  else if (activeCommute === 'walk') transitMultiplier = 1.10;
+
+  const effectiveOutdoorConc = ambientOutdoorPm25 * maskPen * transitMultiplier;
+  const outdoorInhaledMass = hoursOut * effectiveOutdoorConc * rates.active;
+
+  // Indoor steady-state concentration via single-zone mass balance
+  const indoorBalance = calculateIndoorMassBalance(
+    Math.max(5, currentPm25),
+    {
+      roomAreaSqM: 16,
+      ceilingHeightM: 2.8,
+      hasPurifier: activePurifier,
+      ventilationStrategy: 'sealed_windows',
+      cookingFuel: 'lpg_electric',
+    },
+    hoursIn
+  );
+
+  const indoorInhaledMass = hoursIn * indoorBalance.estimatedIndoorConcentration * rates.sedentary;
+  const totalInhaledMass = outdoorInhaledMass + indoorInhaledMass;
+
+  // Unmitigated baseline counterfactual (open commute, morning trap, no mask, no purifier)
+  const baselineOutdoorConc = Math.max(5, hourlyPm25Forecast[8] ?? currentPm25) * (commuteType === 'two_wheeler' ? 1.35 : 1.1);
+  const unmitigatedOutdoorMass = hoursOut * baselineOutdoorConc * rates.active;
+  const unmitigatedIndoorMass = hoursIn * indoorBalance.unmitigatedIndoorConcentration * rates.sedentary;
+  const totalUnmitigatedMass = unmitigatedOutdoorMass + unmitigatedIndoorMass;
+
+  const avoidedMass = Math.max(0, totalUnmitigatedMass - totalInhaledMass);
+
+  // Points on relative 100-point scale for this member's reference
+  const pointsSpent = Math.max(0, Math.round((totalInhaledMass / rates.referenceDailyMassUg) * 100));
+  const remainingPoints = Math.max(0, 100 - pointsSpent);
+  const percentageOfBudget = pointsSpent;
+
+  let status: MemberBudgetResult['status'] = 'Within Reference Range';
+  let statusColor = '#15803D';
+  let statusTextColor = '#FFFFFF';
+
+  if (pointsSpent > 160) {
+    status = 'Severe Particle Burden';
+    statusColor = '#7F1D1D';
+    statusTextColor = '#FFFFFF';
+  } else if (pointsSpent > 100) {
+    status = 'Moderate Elevation';
+    statusColor = '#D97706';
+    statusTextColor = '#0F172A';
+  }
+
+  return {
+    memberType,
+    label,
+    ageCategory,
+    sedentaryBreathingRate: rates.sedentary,
+    activeBreathingRate: rates.active,
+    referenceDailyMassUg: rates.referenceDailyMassUg,
+    inhaledMassUg: Math.round(totalInhaledMass * 10) / 10,
+    avoidedMassUg: Math.round(avoidedMass * 10) / 10,
+    pointsSpent,
+    remainingPoints,
+    percentageOfBudget,
+    status,
+    statusColor,
+    statusTextColor,
+    vulnerabilityNote: rates.vulnerabilityNote,
+  };
+}
+
+export interface HouseholdProfileLike {
+  numKids: number;
+  numElderly: number;
+  commuteType: CommuteType;
+  hasPurifier: boolean;
+  maskType: MaskType;
+  outdoorHours: number;
+}
+
+export function calculateHouseholdPerPersonBudgets(
+  profile: HouseholdProfileLike,
+  currentPm25: number,
+  hourlyPm25Forecast: number[] = [],
+  whatIfOverrides?: WhatIfBudgetOverrides
+): MemberBudgetResult[] {
+  const members: MemberBudgetResult[] = [];
+
+  // 1. Adult (You / Primary)
+  members.push(
+    calculateMemberBudget({
+      memberType: 'adult',
+      label: 'Adult (Primary)',
+      ageCategory: '18 – 64 yrs',
+      currentPm25,
+      hourlyPm25Forecast,
+      outdoorHours: profile.outdoorHours,
+      maskType: profile.maskType,
+      commuteType: profile.commuteType,
+      hasPurifier: profile.hasPurifier,
+      whatIfOverrides,
+    })
+  );
+
+  // 2. Child (if profile has kids, or representative child)
+  if (profile.numKids > 0) {
+    // Kids typically have school commute + outdoor play (~1.5h outdoor)
+    members.push(
+      calculateMemberBudget({
+        memberType: 'child',
+        label: `Child (${profile.numKids} in home)`,
+        ageCategory: 'Age < 12 yrs',
+        currentPm25,
+        hourlyPm25Forecast,
+        outdoorHours: Math.min(profile.outdoorHours, 1.5),
+        maskType: profile.maskType,
+        commuteType: profile.commuteType,
+        hasPurifier: profile.hasPurifier,
+        whatIfOverrides,
+      })
+    );
+  }
+
+  // 3. Senior (if profile has elderly, or representative senior)
+  if (profile.numElderly > 0) {
+    // Seniors typically have fewer outdoor hours (~1.0h outdoor errand/park)
+    members.push(
+      calculateMemberBudget({
+        memberType: 'senior',
+        label: `Senior Citizen (${profile.numElderly} in home)`,
+        ageCategory: 'Age 65+ yrs',
+        currentPm25,
+        hourlyPm25Forecast,
+        outdoorHours: Math.min(profile.outdoorHours, 1.0),
+        maskType: profile.maskType,
+        commuteType: profile.commuteType,
+        hasPurifier: profile.hasPurifier,
+        whatIfOverrides,
+      })
+    );
+  }
+
+  return members;
+}

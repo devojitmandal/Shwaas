@@ -4,6 +4,8 @@ import { useState } from 'react';
 import {
   BudgetActivity,
   calculateBreathBudget,
+  calculateHouseholdPerPersonBudgets,
+  WhatIfBudgetOverrides,
 } from '@/lib/exposure/breathBudget';
 import { MaskType, CommuteType } from '@/lib/exposure/engine';
 import {
@@ -11,6 +13,11 @@ import {
   Plus,
   Trash2,
   Info,
+  ShieldCheck,
+  Wind,
+  Train,
+  Sun,
+  Users,
 } from 'lucide-react';
 
 interface BreathBudgetTrackerProps {
@@ -20,6 +27,9 @@ interface BreathBudgetTrackerProps {
   hasPurifier: boolean;
   maskType: MaskType;
   commuteType: CommuteType;
+  numKids?: number;
+  numElderly?: number;
+  outdoorHours?: number;
 }
 
 export default function BreathBudgetTracker({
@@ -29,7 +39,13 @@ export default function BreathBudgetTracker({
   hasPurifier,
   maskType,
   commuteType,
+  numKids = 0,
+  numElderly = 0,
+  outdoorHours = 2.5,
 }: BreathBudgetTrackerProps) {
+  // What-If live interactive overrides affecting all household member budgets
+  const [whatIf, setWhatIf] = useState<WhatIfBudgetOverrides>({});
+
   // Configured realistic daily routine with scheduled hour
   const [activities, setActivities] = useState<BudgetActivity[]>([
     {
@@ -70,15 +86,60 @@ export default function BreathBudgetTracker({
   const [newActType, setNewActType] = useState<'walk' | 'two_wheeler' | 'metro'>('walk');
   const [isAdding, setIsAdding] = useState(false);
 
-  // Compute live budget using scientific mass-balance engine
+  // Compute live per-person budgets across all household members
+  const memberBudgets = calculateHouseholdPerPersonBudgets(
+    {
+      numKids,
+      numElderly,
+      commuteType,
+      hasPurifier,
+      maskType,
+      outdoorHours,
+    },
+    pm25,
+    hourlyPm25Forecast,
+    whatIf
+  );
+
+  // Compute live ledger budget for primary user
+  const effectiveMask = whatIf.maskType ?? maskType;
+  const effectivePurifier = whatIf.hasPurifier ?? hasPurifier;
   const budget = calculateBreathBudget({
     currentAqi,
     currentPm25: pm25,
     hourlyPm25Forecast,
-    hasPurifier,
-    maskType,
+    hasPurifier: effectivePurifier,
+    maskType: effectiveMask,
     activities,
   });
+
+  const handleToggleWhatIfMask = () => {
+    setWhatIf((prev) => ({
+      ...prev,
+      maskType: prev.maskType === 'n95_kn95' ? undefined : 'n95_kn95',
+    }));
+  };
+
+  const handleToggleWhatIfPurifier = () => {
+    setWhatIf((prev) => ({
+      ...prev,
+      hasPurifier: prev.hasPurifier ? undefined : true,
+    }));
+  };
+
+  const handleToggleWhatIfMetro = () => {
+    setWhatIf((prev) => ({
+      ...prev,
+      commuteType: prev.commuteType === 'metro_bus_transit' ? undefined : 'metro_bus_transit',
+    }));
+  };
+
+  const handleToggleWhatIfShift = () => {
+    setWhatIf((prev) => ({
+      ...prev,
+      shiftedWindow: !prev.shiftedWindow,
+    }));
+  };
 
   const handleAddActivity = (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,6 +247,158 @@ export default function BreathBudgetTracker({
         <p className="leading-relaxed">
           <strong>Decision-Support Notice:</strong> The 100-point Breath Budget is a comparative lifestyle-management score, not a medical safety threshold. Fine particulate matter (PM2.5) has no established safe lower limit. Use this ledger to schedule outdoor routines during cleaner forecast windows and protect indoor breathing air.
         </p>
+      </div>
+
+      {/* Interactive What-If Mitigation Controls */}
+      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/90 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-teal-800" />
+            Live What-If Mitigation Toggles (Updates All Members)
+          </span>
+          <span className="text-[11px] text-slate-500">
+            Click to simulate instant exposure reductions across your family
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleToggleWhatIfMask}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all ${
+              whatIf.maskType === 'n95_kn95'
+                ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>{whatIf.maskType === 'n95_kn95' ? '✓ Fitted N95 Active' : '+ Simulate N95 Mask'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleToggleWhatIfPurifier}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all ${
+              whatIf.hasPurifier
+                ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+            }`}
+          >
+            <Wind className="w-3.5 h-3.5" />
+            <span>{whatIf.hasPurifier ? '✓ Clean-Room HEPA Active' : '+ Simulate Indoor Purifier'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleToggleWhatIfMetro}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all ${
+              whatIf.commuteType === 'metro_bus_transit'
+                ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+            }`}
+          >
+            <Train className="w-3.5 h-3.5" />
+            <span>{whatIf.commuteType === 'metro_bus_transit' ? '✓ Metro Transit Active' : '+ Shift to Metro'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleToggleWhatIfShift}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all ${
+              whatIf.shiftedWindow
+                ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+            }`}
+          >
+            <Sun className="w-3.5 h-3.5" />
+            <span>{whatIf.shiftedWindow ? '✓ 1 PM Window Active' : '+ Shift Outdoors to 1 PM'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Per-Person Household Budgets Side-by-Side */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+            <Users className="w-4 h-4 text-teal-800" />
+            Per-Person Household Breath Budgets
+          </h4>
+          <span className="text-[11px] text-slate-500">
+            Age-appropriate inhalation rates (EPA Exposure Factors Handbook)
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {memberBudgets.map((member) => (
+            <div
+              key={member.memberType}
+              className="p-4 rounded-xl border border-slate-200/90 bg-white shadow-2xs flex flex-col justify-between space-y-3"
+            >
+              <div>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">{member.label}</span>
+                    <span className="text-[11px] text-slate-500 font-mono">{member.ageCategory}</span>
+                  </div>
+                  <span
+                    className="px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0"
+                    style={{
+                      backgroundColor: member.statusColor,
+                      color: member.statusTextColor,
+                    }}
+                  >
+                    {member.status}
+                  </span>
+                </div>
+
+                <div className="mt-2 text-[11px] text-slate-600 space-y-0.5">
+                  <div className="flex justify-between">
+                    <span>Sedentary Inhalation:</span>
+                    <span className="font-mono font-medium">{member.sedentaryBreathingRate} m³/h</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Active Inhalation:</span>
+                    <span className="font-mono font-medium">{member.activeBreathingRate} m³/h</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
+                  <span>{member.pointsSpent} pts</span>
+                  <span className="text-[11px] font-normal text-slate-500">
+                    Ref: 100 pts ({member.referenceDailyMassUg} µg)
+                  </span>
+                </div>
+
+                <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden flex relative">
+                  {/* Reference line at 50% (100 pt benchmark out of 200 pt max) */}
+                  <div
+                    className="absolute top-0 bottom-0 border-r-2 border-slate-400 z-10"
+                    style={{ left: '50%' }}
+                    title="100 Pt Benchmark"
+                  />
+                  <div
+                    className="h-full transition-all duration-500 rounded-full"
+                    style={{
+                      width: `${Math.min(100, (member.pointsSpent / 200) * 100)}%`,
+                      backgroundColor: member.statusColor,
+                    }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5">
+                  <span>~{member.inhaledMassUg} µg PM2.5</span>
+                  {member.avoidedMassUg > 0 ? (
+                    <span className="text-emerald-700 font-medium">~{member.avoidedMassUg} µg avoided</span>
+                  ) : (
+                    <span>Unmitigated</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Progress Bar / Scale */}

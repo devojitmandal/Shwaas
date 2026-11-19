@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   calculateBreathBudget,
+  calculateMemberBudget,
+  calculateHouseholdPerPersonBudgets,
 } from './breathBudget';
 
 describe('Scientifically Grounded Breath Budget Calculator', () => {
@@ -110,5 +112,123 @@ describe('Scientifically Grounded Breath Budget Calculator', () => {
     expect(item.explanation).toContain('HEPA filtration avoided an estimated');
     expect(item.explanation).not.toContain('refunded');
     expect(budget.totalAvoidedMassUg).toBeGreaterThan(0);
+  });
+
+  describe('Per-Person Age-Appropriate Household Member Budgets', () => {
+    it('applies differing physiological inhalation rates and reference intakes for child, adult, and senior', () => {
+      const adult = calculateMemberBudget({
+        memberType: 'adult',
+        label: 'Adult',
+        ageCategory: '18–64 yrs',
+        currentPm25: 200,
+        hourlyPm25Forecast: mockHourlyForecast,
+        outdoorHours: 2,
+        maskType: 'none',
+        commuteType: 'two_wheeler',
+        hasPurifier: false,
+      });
+
+      const child = calculateMemberBudget({
+        memberType: 'child',
+        label: 'Child',
+        ageCategory: 'Age < 12 yrs',
+        currentPm25: 200,
+        hourlyPm25Forecast: mockHourlyForecast,
+        outdoorHours: 2,
+        maskType: 'none',
+        commuteType: 'two_wheeler',
+        hasPurifier: false,
+      });
+
+      const senior = calculateMemberBudget({
+        memberType: 'senior',
+        label: 'Senior',
+        ageCategory: 'Age 65+ yrs',
+        currentPm25: 200,
+        hourlyPm25Forecast: mockHourlyForecast,
+        outdoorHours: 2,
+        maskType: 'none',
+        commuteType: 'two_wheeler',
+        hasPurifier: false,
+      });
+
+      // Verify EPA minute volumes
+      expect(adult.sedentaryBreathingRate).toBe(0.55);
+      expect(adult.activeBreathingRate).toBe(1.40);
+      expect(adult.referenceDailyMassUg).toBe(216);
+
+      expect(child.sedentaryBreathingRate).toBe(0.35);
+      expect(child.activeBreathingRate).toBe(0.85);
+      expect(child.referenceDailyMassUg).toBe(144);
+
+      expect(senior.sedentaryBreathingRate).toBe(0.45);
+      expect(senior.activeBreathingRate).toBe(0.95);
+      expect(senior.referenceDailyMassUg).toBe(172);
+
+      // Child has lower absolute mass intake due to smaller lung volume
+      expect(child.inhaledMassUg).toBeLessThan(adult.inhaledMassUg);
+      expect(senior.inhaledMassUg).toBeLessThan(adult.inhaledMassUg);
+    });
+
+    it('reacts dynamically to what-if overrides across all household members', () => {
+      const baseline = calculateHouseholdPerPersonBudgets(
+        {
+          numKids: 1,
+          numElderly: 1,
+          commuteType: 'two_wheeler',
+          hasPurifier: false,
+          maskType: 'none',
+          outdoorHours: 2,
+        },
+        200,
+        mockHourlyForecast
+      );
+
+      expect(baseline).toHaveLength(3); // Adult, Child, Senior
+
+      const mitigated = calculateHouseholdPerPersonBudgets(
+        {
+          numKids: 1,
+          numElderly: 1,
+          commuteType: 'two_wheeler',
+          hasPurifier: false,
+          maskType: 'none',
+          outdoorHours: 2,
+        },
+        200,
+        mockHourlyForecast,
+        {
+          maskType: 'n95_kn95',
+          hasPurifier: true,
+          shiftedWindow: true,
+        }
+      );
+
+      expect(mitigated).toHaveLength(3);
+
+      // Every member should have strictly lower points and higher avoided mass under what-if mitigations
+      mitigated.forEach((m, idx) => {
+        expect(m.pointsSpent).toBeLessThan(baseline[idx].pointsSpent);
+        expect(m.avoidedMassUg).toBeGreaterThan(0);
+      });
+    });
+
+    it('generates only configured household members', () => {
+      // Household with no kids and no elderly
+      const solo = calculateHouseholdPerPersonBudgets(
+        {
+          numKids: 0,
+          numElderly: 0,
+          commuteType: 'metro_bus_transit',
+          hasPurifier: true,
+          maskType: 'n95_kn95',
+          outdoorHours: 1,
+        },
+        150
+      );
+
+      expect(solo).toHaveLength(1);
+      expect(solo[0].memberType).toBe('adult');
+    });
   });
 });

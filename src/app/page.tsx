@@ -278,6 +278,9 @@ export default function Home() {
               maskType={profile.maskType}
               commuteType={profile.commuteType}
               hourlyPm25Forecast={airData.hourly.map((h) => h.pm25)}
+              numKids={profile.numKids}
+              numElderly={profile.numElderly}
+              outdoorHours={profile.outdoorHours}
             />
           </div>
         ) : null}
