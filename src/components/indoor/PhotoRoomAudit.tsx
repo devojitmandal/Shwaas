@@ -250,13 +250,25 @@ export default function PhotoRoomAudit({ outdoorPm25 }: PhotoRoomAuditProps) {
       {auditResult && (
         <div className="space-y-6 pt-2">
           {/* Summary Banner */}
-          <div className="p-4 rounded-xl bg-teal-50/80 border border-teal-200/90 text-xs text-teal-950 space-y-1">
-            <div className="flex items-center gap-2 font-semibold text-teal-900">
-              <CheckCircle2 className="w-4 h-4 text-teal-800" />
-              <span>Inspection Complete • Source: {auditResult.source === 'gemini_vision_audit' ? 'Gemini 3.8 Flash Vision' : 'Deterministic Mass-Balance Fallback'}</span>
+          {auditResult.analyzed === false ? (
+            <div className="p-4 rounded-xl bg-amber-50/90 border border-amber-200 text-xs text-amber-950 space-y-1">
+              <div className="flex items-center gap-2 font-semibold text-amber-900">
+                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+                <span>{auditResult.message ?? "Photo couldn't be analyzed, showing a generic estimate."}</span>
+              </div>
+              <p className="leading-relaxed pl-6 text-amber-800">
+                Generic Urban Estimate • Physical Mass-Balance Model (AER {auditResult.aerEstimated} h⁻¹)
+              </p>
             </div>
-            <p className="leading-relaxed pl-6">{auditResult.summary}</p>
-          </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-teal-50/80 border border-teal-200/90 text-xs text-teal-950 space-y-1">
+              <div className="flex items-center gap-2 font-semibold text-teal-900">
+                <CheckCircle2 className="w-4 h-4 text-teal-800 shrink-0" />
+                <span>Inspection Complete • Source: Gemini 3.8 Flash Vision</span>
+              </div>
+              <p className="leading-relaxed pl-6">{auditResult.summary}</p>
+            </div>
+          )}
 
           {/* Physical Parameter Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -282,7 +294,7 @@ export default function PhotoRoomAudit({ outdoorPm25 }: PhotoRoomAuditProps) {
           <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
             <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
               <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-              Visual Envelope Observations
+              {auditResult.analyzed === false ? 'Generic Model Baseline Assumptions' : 'Visual Envelope Observations'}
             </span>
             <ul className="text-xs text-slate-600 space-y-1 list-disc pl-4">
               {auditResult.observations.map((obs, idx) => (

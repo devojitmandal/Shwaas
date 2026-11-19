@@ -83,14 +83,24 @@ export async function POST(req: NextRequest) {
       ventilationType: 'sealed_windows',
       visibleDustSources: 'moderate',
       observations: [
-        'Deterministic Fallback Audit: Frame perimeter estimated with typical unsealed sliding joints (AER ~0.70 h⁻¹).',
-        'Cooking zone modeled with clean gas/electric baseline emissions.',
-        'Ambient winter settling layer modeled at moderate particulate accumulation.',
+        'Generic estimate applied: window perimeter modeled with standard sliding gaps (AER 0.70 h⁻¹).',
+        'Indoor cooking source modeled with standard clean fuel baseline.',
       ],
     };
 
-    const audit = buildRoomAuditResult(fallbackVision, outdoorPm25, 'rule_based_fallback');
-    return NextResponse.json({ audit, source: 'rule_based_fallback' });
+    const audit = buildRoomAuditResult(
+      fallbackVision,
+      outdoorPm25,
+      'rule_based_fallback',
+      false,
+      "Photo couldn't be analyzed, showing a generic estimate."
+    );
+    return NextResponse.json({
+      audit,
+      source: 'rule_based_fallback',
+      analyzed: false,
+      message: "Photo couldn't be analyzed, showing a generic estimate.",
+    });
   }
 
   // 5. Call Gemini 2.5 Flash Vision Server-Side
@@ -155,35 +165,60 @@ SCHEMA:
     if (!visionResult.success) {
       // Fallback if schema match fails
       const fallbackVision: RoomAuditVisionOutput = {
-        roomType: 'Observed Room Area',
+        roomType: 'Urban Living / Bedroom',
         windowGaps: 'minor_gaps',
         cookingSource: 'none_visible',
         ventilationType: 'sealed_windows',
         visibleDustSources: 'moderate',
-        observations: ['Vision analysis extracted partial features; applying standard urban room baseline.'],
+        observations: [
+          'Generic estimate applied: window perimeter modeled with standard sliding gaps (AER 0.70 h⁻¹).',
+          'Indoor cooking source modeled with standard clean fuel baseline.',
+        ],
       };
-      const audit = buildRoomAuditResult(fallbackVision, outdoorPm25, 'rule_based_fallback');
-      return NextResponse.json({ audit, source: 'rule_based_fallback' });
+      const audit = buildRoomAuditResult(
+        fallbackVision,
+        outdoorPm25,
+        'rule_based_fallback',
+        false,
+        "Photo couldn't be analyzed, showing a generic estimate."
+      );
+      return NextResponse.json({
+        audit,
+        source: 'rule_based_fallback',
+        analyzed: false,
+        message: "Photo couldn't be analyzed, showing a generic estimate.",
+      });
     }
 
-    const audit = buildRoomAuditResult(visionResult.data, outdoorPm25, 'gemini_vision_audit');
-    return NextResponse.json({ audit, source: 'gemini_vision_audit' });
+    const audit = buildRoomAuditResult(visionResult.data, outdoorPm25, 'gemini_vision_audit', true);
+    return NextResponse.json({ audit, source: 'gemini_vision_audit', analyzed: true });
   } catch (error) {
     const errMessage = error instanceof Error ? error.message : String(error);
     const errStatus = (error as { status?: number | string })?.status;
     console.error(`Gemini vision room audit failed [status: ${errStatus ?? 'N/A'}]: ${errMessage}`);
     const fallbackVision: RoomAuditVisionOutput = {
-      roomType: 'Indoor Living Space',
+      roomType: 'Urban Living / Bedroom',
       windowGaps: 'minor_gaps',
       cookingSource: 'lpg_electric',
       ventilationType: 'sealed_windows',
       visibleDustSources: 'moderate',
       observations: [
-        'Vision service temporarily unavailable; using physical mass-balance model fallback.',
-        'Assumes standard sliding window gaps (AER 0.70 h⁻¹) and clean indoor utility fuel.',
+        'Generic estimate applied: window perimeter modeled with standard sliding gaps (AER 0.70 h⁻¹).',
+        'Indoor cooking source modeled with standard clean fuel baseline.',
       ],
     };
-    const audit = buildRoomAuditResult(fallbackVision, outdoorPm25, 'rule_based_fallback');
-    return NextResponse.json({ audit, source: 'rule_based_fallback' });
+    const audit = buildRoomAuditResult(
+      fallbackVision,
+      outdoorPm25,
+      'rule_based_fallback',
+      false,
+      "Photo couldn't be analyzed, showing a generic estimate."
+    );
+    return NextResponse.json({
+      audit,
+      source: 'rule_based_fallback',
+      analyzed: false,
+      message: "Photo couldn't be analyzed, showing a generic estimate.",
+    });
   }
 }

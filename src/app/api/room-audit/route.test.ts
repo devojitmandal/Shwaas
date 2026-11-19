@@ -62,6 +62,13 @@ describe('Room Audit API Route Handler', () => {
     const data = await res.json();
     expect(data.audit).toBeDefined();
     expect(data.source).toBe('rule_based_fallback');
+    expect(data.analyzed).toBe(false);
+    expect(data.message).toBe("Photo couldn't be analyzed, showing a generic estimate.");
+    expect(data.audit.analyzed).toBe(false);
+    expect(data.audit.observations).toEqual([
+      'Generic estimate applied: window perimeter modeled with standard sliding gaps (AER 0.70 h⁻¹).',
+      'Indoor cooking source modeled with standard clean fuel baseline.',
+    ]);
     expect(data.audit.aerEstimated).toBe(0.70);
     expect(data.audit.indoorSourceSEstimated).toBeGreaterThan(0);
     expect(data.audit.estimatedBaselineIndoorPm25).toBeGreaterThan(0);
@@ -137,6 +144,8 @@ describe('Room Audit API Route Handler', () => {
 
     const data = await res.json();
     expect(data.source).toBe('gemini_vision_audit');
+    expect(data.analyzed).toBe(true);
+    expect(data.audit.analyzed).toBe(true);
     expect(data.audit.roomType).toBe('Master Bedroom');
     expect(data.audit.windowGaps).toBe('open_drafty');
     expect(data.audit.aerEstimated).toBe(1.80); // Mapped open_drafty
@@ -177,6 +186,9 @@ describe('Room Audit API Route Handler', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.source).toBe('rule_based_fallback');
+    expect(data.analyzed).toBe(false);
+    expect(data.message).toBe("Photo couldn't be analyzed, showing a generic estimate.");
+    expect(data.audit.analyzed).toBe(false);
 
     expect(consoleErrorSpy).toHaveBeenCalled();
     const loggedError = consoleErrorSpy.mock.calls.map((c) => c.join(' ')).join(' ');

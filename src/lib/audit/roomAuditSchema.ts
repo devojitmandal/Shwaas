@@ -51,6 +51,8 @@ export interface RoomAuditResult {
   rankedFixes: RankedAuditFix[];
   summary: string;
   source: 'gemini_vision_audit' | 'rule_based_fallback';
+  analyzed?: boolean;
+  message?: string;
 }
 
 /**
@@ -219,7 +221,9 @@ export function computeRankedFixes(
 export function buildRoomAuditResult(
   vision: RoomAuditVisionOutput,
   outdoorPm25 = 180,
-  source: 'gemini_vision_audit' | 'rule_based_fallback' = 'gemini_vision_audit'
+  source: 'gemini_vision_audit' | 'rule_based_fallback' = 'gemini_vision_audit',
+  analyzed = source === 'gemini_vision_audit',
+  message?: string
 ): RoomAuditResult {
   const aer = mapWindowGapsToAer(vision.windowGaps);
   const s = mapSourcesToIndoorGeneration(vision.cookingSource, vision.visibleDustSources);
@@ -227,7 +231,9 @@ export function buildRoomAuditResult(
   const rankedFixes = computeRankedFixes(outdoorPm25, aer, s);
 
   const topFix = rankedFixes[0];
-  const summary = `Physical room audit identified an estimated Air Exchange Rate of ${aer} h⁻¹ and indoor generation of ~${s} µg/h. Indoor baseline concentration is modeled at ~${Math.round(baselineIndoorPm25)} µg/m³. Your #1 priority fix (${topFix.title}) can save ~${topFix.budgetPointsSaved} daily Breath Budget points.`;
+  const summary = analyzed
+    ? `Physical room audit identified an estimated Air Exchange Rate of ${aer} h⁻¹ and indoor generation of ~${s} µg/h. Indoor baseline concentration is modeled at ~${Math.round(baselineIndoorPm25)} µg/m³. Your #1 priority fix (${topFix.title}) can save ~${topFix.budgetPointsSaved} daily Breath Budget points.`
+    : `Generic estimate applied based on standard urban room parameters (AER ${aer} h⁻¹, baseline ~${Math.round(baselineIndoorPm25)} µg/m³).`;
 
   return {
     roomType: vision.roomType,
@@ -248,5 +254,7 @@ export function buildRoomAuditResult(
     rankedFixes,
     summary,
     source,
+    analyzed,
+    ...(message ? { message } : {}),
   };
 }
