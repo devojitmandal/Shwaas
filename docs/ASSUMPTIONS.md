@@ -16,6 +16,9 @@ This document outlines the scientific foundations, mathematical formulations, em
 
 AirWise implements the **Central Pollution Control Board (CPCB)** methodology formulated by the Ministry of Environment, Forest and Climate Change (MoEFCC), Government of India (*CPCB 2014 Final Report on National Air Quality Index*).
 
+> [!IMPORTANT]
+> **24-Hour Average vs. Hourly Approximation Note:** Under the official CPCB regulatory framework, India's National AQI is formally defined on **24-hour truncated average concentrations**. In Shwaas, hourly pollutant concentrations fetched from atmospheric chemistry models are evaluated directly through the official CPCB breakpoint interpolation tables as **real-time hourly approximations**. This approximation provides actionable, real-time decision support for outdoor errand timing and ventilation management during rapidly shifting winter inversion episodes.
+
 ### 1.1 Sub-Index Piecewise Linear Interpolation
 For each particulate pollutant ($\text{PM}_{2.5}$, $\text{PM}_{10}$), the sub-index $I_p$ is calculated using the standard breakpoint equation:
 
@@ -86,18 +89,18 @@ $$C_{\text{in}} = \frac{P \cdot \text{AER} \cdot C_{\text{out}} + \frac{S}{V}}{\
 
 Where:
 - $C_{\text{out}}$: Ambient outdoor PM2.5 concentration ($\mu\text{g/m}^3$).
-- $P$: Particle penetration factor through building envelope cracks (**0.80** for open windows; **0.55** for sealed doors/windows).
-- $\text{AER}$: Air Exchange Rate per hour ($\text{h}^{-1}$):
+- $P$: Particle penetration factor through building envelope cracks (**0.80** for open windows; **0.55** for sealed doors/windows; source: *Chen & Zhao, 2011; Long et al., 2001*).
+- $\text{AER}$: Air Exchange Rate per hour ($\text{h}^{-1}$) (source: *ASHRAE Standard 62.2; Kulmala et al., 1999*):
   - `windows_open`: **1.80** $\text{h}^{-1}$ (Uncontrolled outdoor air ingress).
   - `timed_afternoon`: **0.70** $\text{h}^{-1}$ (Controlled 15–20 minute flushing during low-smog afternoon window).
   - `sealed_windows`: **0.35** $\text{h}^{-1}$ (Tightly weatherstripped residential room).
-- $k_{\text{dep}}$: Natural particulate gravitational settling and surface deposition rate constant (**0.20** $\text{h}^{-1}$ for PM2.5 fine aerosols).
+- $k_{\text{dep}}$: Natural particulate gravitational settling and surface deposition rate constant (**0.20** $\text{h}^{-1}$ for PM2.5 fine aerosols; source: *Thatcher et al., 2002; Lai, 2002*).
 - $S$: Indoor emission generation rate ($\mu\text{g/h}$):
   - `lpg_electric`: **500** $\mu\text{g/h}$ (Clean cooking with kitchen exhaust ventilation).
   - `biomass_kerosene`: **6,000** $\mu\text{g/h}$ (Substantial soot generation).
   - `wood`: **15,000** $\mu\text{g/h}$ (Unvented solid fuel combustion).
 - $V$: Room volume ($\text{m}^3$) = Floor Area ($\text{m}^2$) $\times$ Ceiling Height ($\text{m}$) (Default $15\,\text{m}^2 \times 2.8\,\text{m} = 42\,\text{m}^3$).
-- $\text{CADR}$: Clean Air Delivery Rate of mechanical air cleaner ($\text{m}^3/\text{h}$):
+- $\text{CADR}$: Clean Air Delivery Rate of mechanical air cleaner ($\text{m}^3/\text{h}$) (source: *ANSI/AHAM AC-1 Portable Electric Room Air Cleaners Standard*):
   - With HEPA Purifier: **250** $\text{m}^3/\text{h}$ (Achieving ~5.9 Equivalent Air Changes/Hour in a 42 $\text{m}^3$ room).
   - Without Purifier: **0** $\text{m}^3/\text{h}$.
 
