@@ -80,7 +80,7 @@ describe('Plan Schema & Deterministic Fallback Generator', () => {
         vulnerableGroupsCovered: ['Children', 'Elderly'],
       },
       communityAction: 'Urge apartment RWA to distribute electric heaters to security guards to eliminate open waste burning.',
-      disclaimer: 'AirWise provides decision-support exposure models; this is not medical advice.',
+      disclaimer: 'Shwaas provides decision-support exposure models; this is not medical advice.',
     };
 
     const parseResult = planResponseSchema.safeParse(sampleGeminiOutput);

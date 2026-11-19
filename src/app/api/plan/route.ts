@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
   try {
     const ai = new GoogleGenAI({ apiKey });
 
-    const prompt = `You are AirWise, a scientific urban air quality assistant helping families navigate severe winter smog.
+    const prompt = `You are Shwaas (श्वास — हर सांस का हिसाब), an urban air quality assistant helping families navigate severe winter smog.
 
 CRITICAL ANTI-HALLUCINATION INSTRUCTIONS:
 - You must NOT invent, guess, or fabricate any numerical metrics, AQI values, or percentages.

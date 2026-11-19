@@ -169,8 +169,8 @@ export default function Home() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pb-24 space-y-10">
         {/* Hero Section */}
         <HeroTitle
-          title="Breathe with Scientific Clarity."
-          subtitle="A deterministic GenAI assistant helping families and communities navigate severe winter smog with low-emission routines, indoor clean-air hacks, and quantified exposure reductions."
+          title="Shwaas: हर सांस का हिसाब"
+          subtitle="A deterministic GenAI assistant helping families and communities navigate severe winter smog with personal breath budgets, room air modeling, and quantified exposure reductions."
         />
 
         {/* Location Selector & Geolocation */}

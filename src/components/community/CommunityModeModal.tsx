@@ -36,11 +36,11 @@ export default function CommunityModeModal({
   };
 
   const handleShare = async () => {
-    const text = `AirWise Community Clean Air Action Plan for ${cityName} (Current NAQI: ${currentAqi})\n\n` +
+    const text = `Shwaas (श्वास) Community Clean Air Action Plan for ${cityName} (Current NAQI: ${currentAqi})\n\n` +
       `🏢 1. Residential Societies: Ban open waste burning, distribute electric room heaters to night security staff, and mandate wet-mopping.\n` +
       `🏫 2. Schools: Postpone outdoor morning sports to afternoon solar dispersion window; seal classroom windows.\n` +
       `🏘️ 3. Communities: Report illegal waste burning to municipal helpline and establish local metro-shuttle carpools.\n\n` +
-      `Generated with AirWise Urban Air Quality Assistant • airwise.in`;
+      `Generated with Shwaas (श्वास) — हर सांस का हिसाब • shwaas.in`;
 
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(text);
@@ -151,7 +151,7 @@ export default function CommunityModeModal({
           {/* Print Header */}
           <div className="hidden print:block pb-4 border-b border-slate-300">
             <h1 className="text-2xl font-serif font-bold text-slate-900">
-              AirWise Community Smog Mitigation Action Plan — {cityName}
+              Shwaas (श्वास) Community Smog Mitigation Action Plan — {cityName}
             </h1>
             <p className="text-xs text-slate-600 mt-1">
               National AQI Alert Level: {currentAqi} • Issued for Community Self-Defense & Emission Abatement
@@ -312,7 +312,7 @@ export default function CommunityModeModal({
 
           {/* Footer Note */}
           <div className="pt-4 border-t border-slate-200 text-[11px] text-slate-500 flex items-center justify-between flex-wrap gap-2">
-            <span>AirWise Urban Clean Air Guard • Hack2Skill Urban Air Quality Challenge</span>
+            <span>Shwaas (श्वास) — हर सांस का हिसाब • Hack2Skill Urban Air Quality Challenge</span>
             <span>Document: Community Checklist (Printable) • Not a replacement for municipal regulation</span>
           </div>
         </div>

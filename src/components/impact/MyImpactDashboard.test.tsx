@@ -21,7 +21,7 @@ describe('MyImpactDashboard Component', () => {
     roomInfiltrationRatio: 0.55,
     cleanAirDeliveryCadre: 250,
     steadyStateIndoorPm25: 35,
-    disclaimer: 'AirWise provides decision-support exposure models; this is not medical advice.',
+    disclaimer: 'Shwaas provides decision-support exposure models; this is not medical advice.',
   };
 
   it('renders quantified particulate avoidance metrics and city name', () => {
@@ -30,6 +30,6 @@ describe('MyImpactDashboard Component', () => {
     expect(screen.getByText(/Quantified Pollution Avoidance for Delhi/i)).toBeInTheDocument();
     expect(screen.getByText(/Intake Avoided per Day/i)).toBeInTheDocument();
     expect(screen.getByText(/Baseline Routine \(Unmitigated\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/AirWise Optimized Protocol/i)).toBeInTheDocument();
+    expect(screen.getByText(/Shwaas Optimized Protocol/i)).toBeInTheDocument();
   });
 });

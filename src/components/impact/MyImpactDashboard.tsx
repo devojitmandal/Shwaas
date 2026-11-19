@@ -24,13 +24,13 @@ export default function MyImpactDashboard({ exposure, cityName }: MyImpactDashbo
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-800">
             <Award className="w-4 h-4 text-teal-800" aria-hidden="true" />
-            <span id="my-impact-heading">My AirWise Impact Dashboard</span>
+            <span id="my-impact-heading">My Shwaas Impact Dashboard</span>
           </div>
           <h3 className="mt-1 text-2xl font-serif font-bold text-slate-900 tracking-tight">
             Quantified Pollution Avoidance for {cityName}
           </h3>
           <p className="mt-1 text-xs text-slate-500 max-w-2xl leading-relaxed">
-            Comparing your unmitigated daily routine against an optimized AirWise protocol using deterministic particulate intake equations.
+            Comparing your unmitigated daily routine against an optimized Shwaas protocol using deterministic particulate intake equations.
           </p>
         </div>
 
@@ -115,7 +115,7 @@ export default function MyImpactDashboard({ exposure, cityName }: MyImpactDashbo
         {/* Optimized Bar */}
         <div>
           <div className="flex items-center justify-between text-xs font-medium text-slate-700 mb-1">
-            <span className="font-semibold text-teal-900">AirWise Optimized Protocol</span>
+            <span className="font-semibold text-teal-900">Shwaas Optimized Protocol</span>
             <span className="font-mono text-teal-800 font-bold">{optimizedMass} µg ({reductionPercent}% drop)</span>
           </div>
           <div className="h-6 w-full rounded-lg bg-slate-200 overflow-hidden flex">
@@ -142,7 +142,7 @@ export default function MyImpactDashboard({ exposure, cityName }: MyImpactDashbo
       <div className="pt-2 text-[11px] text-slate-400 flex items-start gap-2">
         <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
         <p>
-          <strong>Scientific Integrity Note:</strong> Figures are derived deterministically using EPA minute ventilation volume equations and indoor single-zone mass balance. AirWise does not claim clinical health outcomes or disease cures; results are exposure-management estimates for lifestyle optimization.
+          <strong>Scientific Integrity Note:</strong> Figures are derived deterministically using EPA minute ventilation volume equations and indoor single-zone mass balance. Shwaas does not claim clinical health outcomes or disease cures; results are exposure-management estimates for lifestyle optimization.
         </p>
       </div>
     </section>

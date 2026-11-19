@@ -45,7 +45,8 @@ export const DEFAULT_HOUSEHOLD_PROFILE: HouseholdProfile = {
   ventilationStrategy: 'windows_open',
 };
 
-const STORAGE_KEY = 'airwise_household_profile_v1';
+const STORAGE_KEY = 'shwaas_household_profile_v1';
+const LEGACY_STORAGE_KEY = 'airwise_household_profile_v1';
 
 export function validateHouseholdProfile(data: unknown) {
   return householdProfileSchema.safeParse(data);
@@ -54,7 +55,7 @@ export function validateHouseholdProfile(data: unknown) {
 export function loadProfileFromStorage(): HouseholdProfile {
   if (typeof window === 'undefined') return DEFAULT_HOUSEHOLD_PROFILE;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return DEFAULT_HOUSEHOLD_PROFILE;
     const parsed = JSON.parse(raw);
     const result = householdProfileSchema.safeParse(parsed);

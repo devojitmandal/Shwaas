@@ -48,11 +48,14 @@ export default function Header({ onCommunityClick, onProfileClick }: HeaderProps
             <Wind className="w-5 h-5 text-teal-200" aria-hidden="true" />
           </div>
           <div>
-            <span className="font-serif font-bold text-lg tracking-tight text-slate-900 block leading-tight">
-              AirWise
-            </span>
-            <span className="text-[10px] tracking-widest uppercase font-medium text-teal-800 block">
-              Urban Clean Air Guard
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-serif font-bold text-lg tracking-tight text-slate-900 block leading-tight">
+                Shwaas
+              </span>
+              <span className="text-xs font-semibold text-teal-800">श्वास</span>
+            </div>
+            <span className="text-[10px] tracking-wide font-medium text-teal-800 block">
+              हर सांस का हिसाब
             </span>
           </div>
         </div>

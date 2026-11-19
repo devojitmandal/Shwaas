@@ -48,7 +48,7 @@ export default function WhatsAppShareCard({
   const bestRange = formatWindow(bestWindow.startTime, bestWindow.endTime);
   const worstRange = formatWindow(worstWindow.startTime, worstWindow.endTime);
 
-  const shareSummaryText = `🌫️ *AirWise Smog Protocol — ${cityName}*
+  const shareSummaryText = `🌫️ *Shwaas (श्वास) Smog Protocol — ${cityName}*
 🚨 *National AQI:* ${aqi} (${category}) | PM2.5: ${pm25} µg/m³
 📡 *Data Source:* ${dataSource}
 
@@ -66,7 +66,7 @@ ${
 2. Home: Keep windows sealed until 1 PM; wet-mop floors (no dry sweeping).
 3. Society: Urge RWA to provide electric heaters to night guards to eliminate open waste fires.
 
-*India CPCB NAQI Standard • airwise.in*`;
+*India CPCB NAQI Standard • shwaas.in*`;
 
   // Draw high-res canvas image for download and sharing
   const generateCanvasImage = (): string => {
@@ -91,7 +91,7 @@ ${
     // Header Tag
     ctx.fillStyle = '#0E7490';
     ctx.font = 'bold 15px sans-serif';
-    ctx.fillText('AIRWISE • URBAN CLEAN AIR GUARD', 50, 55);
+    ctx.fillText('SHWAAS (श्वास) • हर सांस का हिसाब', 50, 55);
 
     // Date & Time
     ctx.fillStyle = '#64748B';
@@ -223,7 +223,7 @@ ${
     ctx.fillStyle = '#64748B';
     ctx.font = '12px sans-serif';
     ctx.fillText(`Telemetry: ${dataSource} • India CPCB NAQI Standard`, 50, 915);
-    ctx.fillText('AirWise Urban Clean Air Guard • Decision-Support (Not Medical Advice) • airwise.in', 50, 940);
+    ctx.fillText('Shwaas (श्वास) • हर सांस का हिसाब • Decision-Support (Not Medical Advice) • shwaas.in', 50, 940);
 
     return canvas.toDataURL('image/png');
   };
@@ -237,7 +237,7 @@ ${
         return;
       }
       const link = document.createElement('a');
-      link.download = `airwise-smog-alert-${cityName.toLowerCase().replace(/[^a-z0-9]/g, '-')}.png`;
+      link.download = `shwaas-smog-alert-${cityName.toLowerCase().replace(/[^a-z0-9]/g, '-')}.png`;
       link.href = dataUrl;
       link.click();
       setIsGenerating(false);
@@ -250,11 +250,11 @@ ${
         const dataUrl = generateCanvasImage();
         const res = await fetch(dataUrl);
         const blob = await res.blob();
-        const file = new File([blob], `airwise-${cityName}.png`, { type: 'image/png' });
+        const file = new File([blob], `shwaas-${cityName}.png`, { type: 'image/png' });
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
-            title: `AirWise Smog Alert: ${cityName}`,
+            title: `Shwaas Smog Alert: ${cityName}`,
             text: shareSummaryText,
             files: [file],
           });
@@ -338,7 +338,7 @@ ${
         <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
           <div>
             <span className="text-[10px] font-bold tracking-widest text-teal-800 uppercase block">
-              AirWise Daily Protocol
+              Shwaas Daily Protocol
             </span>
             <span className="text-lg font-serif font-bold text-slate-900">{cityName}</span>
           </div>

@@ -138,7 +138,7 @@ export function generateFallbackPlan(params: GenerateFallbackParams): PlanRespon
     communityAction:
       'Urge your Resident Welfare Association (RWA) or society committee to provide electric room heaters to night security guards to eliminate open wood/garbage burning fires.',
     disclaimer:
-      'AirWise provides decision-support exposure models; this is not medical advice. Consult healthcare providers for personal respiratory symptoms.',
+      'Shwaas provides decision-support exposure models; this is not medical advice. Consult healthcare providers for personal respiratory symptoms.',
     dataProvenanceNote:
       'Modeled via Open-Meteo atmospheric chemistry estimates and deterministic EPA inhalation rate equations.',
   };

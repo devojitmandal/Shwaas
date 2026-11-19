@@ -203,7 +203,7 @@ export default function TodaysPlanView({
           <span className="font-bold text-slate-800">Decision-Support & Medical Disclaimer: </span>
           <span>{plan.disclaimer}</span>
           <span className="block mt-0.5 text-slate-500">
-            AirWise calculates exposure doses and reductions strictly from deterministic environmental equations and CPCB NAQI tables. Always consult a licensed pulmonologist or medical doctor for personal health symptoms, asthma management, or medication.
+            Shwaas calculates exposure doses and reductions strictly from deterministic environmental equations and CPCB NAQI tables. Always consult a licensed pulmonologist or medical doctor for personal health symptoms, asthma management, or medication.
           </span>
         </div>
       </aside>
