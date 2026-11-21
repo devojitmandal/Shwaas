@@ -119,8 +119,7 @@ export async function POST(req: NextRequest) {
     isSafe: false,
   };
 
-  // 4. Fallback if no API key is configured or invalid
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+  const createFallbackResponse = () => {
     const fallbackPlan = generateFallbackPlan({
       cityName: sanitizedCityName,
       profile,
@@ -135,6 +134,11 @@ export async function POST(req: NextRequest) {
       exposure,
       source: 'deterministic_engine_fallback',
     });
+  };
+
+  // 4. Fallback if no API key is configured or invalid
+  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+    return createFallbackResponse();
   }
 
   // 5. Call Gemini API Server-Side with JSON Schema Enforcement
@@ -237,20 +241,7 @@ REQUIRED JSON STRUCTURE:
     const validation = planResponseSchema.safeParse(parsedJson);
     if (!validation.success) {
       console.warn('Gemini response failed JSON schema validation, falling back:', validation.error);
-      const fallback = generateFallbackPlan({
-        cityName: sanitizedCityName,
-        profile,
-        exposure,
-        bestWindow: normalizedBestWindow,
-        worstWindow: normalizedWorstWindow,
-        noSafeWindowAvailable,
-        language,
-      });
-      return NextResponse.json({
-        plan: fallback,
-        exposure,
-        source: 'deterministic_engine_fallback',
-      });
+      return createFallbackResponse();
     }
 
     return NextResponse.json({
@@ -262,19 +253,6 @@ REQUIRED JSON STRUCTURE:
     const errMessage = error instanceof Error ? error.message : String(error);
     const errStatus = (error as { status?: number | string })?.status;
     console.error(`Gemini plan API call failed [status: ${errStatus ?? 'N/A'}]: ${errMessage}`);
-    const fallback = generateFallbackPlan({
-      cityName: sanitizedCityName,
-      profile,
-      exposure,
-      bestWindow: normalizedBestWindow,
-      worstWindow: normalizedWorstWindow,
-      noSafeWindowAvailable,
-      language,
-    });
-    return NextResponse.json({
-      plan: fallback,
-      exposure,
-      source: 'deterministic_engine_fallback',
-    });
+    return createFallbackResponse();
   }
 }

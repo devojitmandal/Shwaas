@@ -179,6 +179,21 @@ export default function Home() {
       });
       setExposure(localExposure);
 
+      const applyFallback = () => {
+        const fallback = generateFallbackPlan({
+          cityName: currentAir.cityName,
+          profile: currentProf,
+          exposure: localExposure,
+          bestWindow: currentAir.bestWindow,
+          worstWindow: currentAir.worstWindow,
+          noSafeWindowAvailable: currentAir.windowRecommendations?.noSafeWindowAvailable,
+          alertHeadline: currentAir.windowRecommendations?.alertHeadline,
+          language: currentLang,
+        });
+        setPlan(fallback);
+        setPlanSource('deterministic_engine_fallback');
+      };
+
       try {
         const res = await fetch('/api/plan', {
           method: 'POST',
@@ -202,33 +217,11 @@ export default function Home() {
           setExposure(json.exposure);
           setPlanSource(json.source);
         } else {
-          const fallback = generateFallbackPlan({
-            cityName: currentAir.cityName,
-            profile: currentProf,
-            exposure: localExposure,
-            bestWindow: currentAir.bestWindow,
-            worstWindow: currentAir.worstWindow,
-            noSafeWindowAvailable: currentAir.windowRecommendations?.noSafeWindowAvailable,
-            alertHeadline: currentAir.windowRecommendations?.alertHeadline,
-            language: currentLang,
-          });
-          setPlan(fallback);
-          setPlanSource('deterministic_engine_fallback');
+          applyFallback();
         }
       } catch (err) {
         console.error('Error fetching plan, using local deterministic fallback:', err);
-        const fallback = generateFallbackPlan({
-          cityName: currentAir.cityName,
-          profile: currentProf,
-          exposure: localExposure,
-          bestWindow: currentAir.bestWindow,
-          worstWindow: currentAir.worstWindow,
-          noSafeWindowAvailable: currentAir.windowRecommendations?.noSafeWindowAvailable,
-          alertHeadline: currentAir.windowRecommendations?.alertHeadline,
-          language: currentLang,
-        });
-        setPlan(fallback);
-        setPlanSource('deterministic_engine_fallback');
+        applyFallback();
       } finally {
         setIsPlanLoading(false);
       }

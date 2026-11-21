@@ -74,8 +74,7 @@ export async function POST(req: NextRequest) {
 
   const apiKey = process.env.GEMINI_API_KEY;
 
-  // 4. Deterministic Rule-Based Fallback if API key is missing
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+  const buildFallbackResponse = (message = "Photo couldn't be analyzed, showing a generic estimate.") => {
     const fallbackVision: RoomAuditVisionOutput = {
       roomType: 'Urban Living / Bedroom',
       windowGaps: 'minor_gaps',
@@ -93,14 +92,19 @@ export async function POST(req: NextRequest) {
       outdoorPm25,
       'rule_based_fallback',
       false,
-      "Photo couldn't be analyzed, showing a generic estimate."
+      message
     );
     return NextResponse.json({
       audit,
       source: 'rule_based_fallback',
       analyzed: false,
-      message: "Photo couldn't be analyzed, showing a generic estimate.",
+      message,
     });
+  };
+
+  // 4. Deterministic Rule-Based Fallback if API key is missing
+  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+    return buildFallbackResponse();
   }
 
   // 5. Call Gemini 2.5 Flash Vision Server-Side
@@ -130,7 +134,7 @@ SCHEMA:
   "observations": string[]
 }`;
 
-    const response = await ai.models.generateContent({
+    const generatePromise = ai.models.generateContent({
       model: process.env.GEMINI_MODEL ?? 'gemini-3.8-flash',
       contents: [
         {
@@ -151,6 +155,16 @@ SCHEMA:
       },
     });
 
+    // 20-second timeout guard to prevent worker hang
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Gemini Vision API call timed out after 20000ms')), 20000)
+    );
+
+    const response: Awaited<ReturnType<typeof ai.models.generateContent>> = await Promise.race([
+      generatePromise,
+      timeoutPromise,
+    ]);
+
     const rawText = response.text?.trim() || '{}';
     let parsedJson: unknown;
     try {
@@ -163,31 +177,7 @@ SCHEMA:
 
     const visionResult = roomAuditVisionSchema.safeParse(parsedJson);
     if (!visionResult.success) {
-      // Fallback if schema match fails
-      const fallbackVision: RoomAuditVisionOutput = {
-        roomType: 'Urban Living / Bedroom',
-        windowGaps: 'minor_gaps',
-        cookingSource: 'none_visible',
-        ventilationType: 'sealed_windows',
-        visibleDustSources: 'moderate',
-        observations: [
-          'Generic estimate applied: window perimeter modeled with standard sliding gaps (AER 0.70 h⁻¹).',
-          'Indoor cooking source modeled with standard clean fuel baseline.',
-        ],
-      };
-      const audit = buildRoomAuditResult(
-        fallbackVision,
-        outdoorPm25,
-        'rule_based_fallback',
-        false,
-        "Photo couldn't be analyzed, showing a generic estimate."
-      );
-      return NextResponse.json({
-        audit,
-        source: 'rule_based_fallback',
-        analyzed: false,
-        message: "Photo couldn't be analyzed, showing a generic estimate.",
-      });
+      return buildFallbackResponse();
     }
 
     const audit = buildRoomAuditResult(visionResult.data, outdoorPm25, 'gemini_vision_audit', true);
@@ -196,29 +186,6 @@ SCHEMA:
     const errMessage = error instanceof Error ? error.message : String(error);
     const errStatus = (error as { status?: number | string })?.status;
     console.error(`Gemini vision room audit failed [status: ${errStatus ?? 'N/A'}]: ${errMessage}`);
-    const fallbackVision: RoomAuditVisionOutput = {
-      roomType: 'Urban Living / Bedroom',
-      windowGaps: 'minor_gaps',
-      cookingSource: 'lpg_electric',
-      ventilationType: 'sealed_windows',
-      visibleDustSources: 'moderate',
-      observations: [
-        'Generic estimate applied: window perimeter modeled with standard sliding gaps (AER 0.70 h⁻¹).',
-        'Indoor cooking source modeled with standard clean fuel baseline.',
-      ],
-    };
-    const audit = buildRoomAuditResult(
-      fallbackVision,
-      outdoorPm25,
-      'rule_based_fallback',
-      false,
-      "Photo couldn't be analyzed, showing a generic estimate."
-    );
-    return NextResponse.json({
-      audit,
-      source: 'rule_based_fallback',
-      analyzed: false,
-      message: "Photo couldn't be analyzed, showing a generic estimate.",
-    });
+    return buildFallbackResponse();
   }
 }
