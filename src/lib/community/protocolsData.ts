@@ -112,6 +112,6 @@ export function formatCommunityShareText(cityName: string, currentAqi: number): 
     `🏢 1. Residential Societies: Ban open waste burning, distribute electric room heaters to night security staff, and mandate wet-mopping.\n` +
     `🏫 2. Schools: Postpone outdoor morning sports to afternoon solar dispersion window; seal classroom windows.\n` +
     `🏘️ 3. Communities: Report illegal waste burning to municipal helpline and establish local metro-shuttle carpools.\n\n` +
-    `Generated with Shwaas (श्वास) — हर सांस का हिसाब • shwaas.in`
+    `Generated with Shwaas (श्वास) — हर सांस का हिसाब • https://shwaas-alpha.vercel.app/`
   );
 }

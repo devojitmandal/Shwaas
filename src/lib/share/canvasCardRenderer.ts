@@ -189,7 +189,7 @@ export function renderWhatsAppCardCanvas(
   ctx.fillStyle = '#475569';
   ctx.font = `13px ${FONT_SANS}`;
   ctx.fillText(`Telemetry: ${dataSource} • India CPCB NAQI Standard`, 50, 915);
-  ctx.fillText('Shwaas (श्वास) • हर सांस का हिसाब • Decision-Support (Not Medical Advice) • shwaas.in', 50, 940);
+  ctx.fillText('Shwaas (श्वास) • हर सांस का हिसाब • Decision-Support (Not Medical Advice) • https://shwaas-alpha.vercel.app/', 50, 940);
 
   return canvas.toDataURL('image/png');
 }

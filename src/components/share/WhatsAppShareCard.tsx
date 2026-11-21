@@ -67,7 +67,7 @@ ${
 2. Home: Keep windows sealed until 1 PM; wet-mop floors (no dry sweeping).
 3. Society: Urge RWA to provide electric heaters to night guards to eliminate open waste fires.
 
-*India CPCB NAQI Standard • shwaas.in*`;
+*India CPCB NAQI Standard • https://shwaas-alpha.vercel.app/*`;
 
   // Draw high-res canvas image for download and sharing
   const generateCanvasImage = (): string => {
