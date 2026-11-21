@@ -99,8 +99,29 @@ export interface IndoorMassBalanceResult {
 }
 
 /**
- * Peer-reviewed single-zone mass-balance model for steady-state indoor PM2.5:
+ * Single-zone steady-state indoor mass-balance model for fine particulate matter (PM2.5).
+ *
+ * Governing Equation:
  * C_in = (P * AER * C_out + S / V) / (AER + k_dep + CADR / V)
+ *
+ * Parameters & Units:
+ * - C_out: Ambient PM2.5 concentration in µg/m³
+ * - C_in: Steady-state indoor PM2.5 concentration in µg/m³
+ * - V: Room volume (Area [m²] × Height [m]) in m³
+ * - AER: Air exchange rate in h⁻¹ (infiltration / ventilation)
+ * - P: Envelope penetration efficiency factor (dimensionless, ~0.80 for PM2.5)
+ * - k_dep: Surface deposition rate in h⁻¹ (~0.20 h⁻¹ for fine particles)
+ * - CADR: Clean Air Delivery Rate of mechanical filtration in m³/h
+ * - S: Indoor combustion / activity emission rate in µg/h
+ *
+ * Citations:
+ * - Nazaroff, W. W. (2004). Indoor particle dynamics. Indoor Air, 14(s7), 175-183.
+ * - Bennett, D. H., & Koutrakis, P. (2006). Determining the infiltration of outdoor particles in the indoor environment.
+ *
+ * @param cOut Ambient PM2.5 concentration in µg/m³
+ * @param params Room geometry, mechanical air cleaning (CADR), ventilation, and cooking fuel
+ * @param indoorHours Daily hours spent inside this indoor microenvironment
+ * @returns Estimated indoor concentration (µg/m³) and daily inhaled mass avoided (µg)
  */
 export function calculateIndoorMassBalance(
   cOut: number,
@@ -192,9 +213,24 @@ export interface WhatIfScenarioResult {
 }
 
 /**
- * Calculates physical inhaled particulate mass intake (in µg) and normalized exposure
- * using a transparent time-activity mass concentration model:
- * Inhaled Mass (µg) = Concentration (µg/m³) × Breathing Rate (m³/h) × Duration (h)
+ * Calculates physical inhaled particulate mass intake (in µg) and normalized daily exposure index.
+ *
+ * Microenvironmental Time-Activity Model:
+ * - Inhaled Mass (µg) = ∑ [ C_micro (µg/m³) × Breathing_Rate_micro (m³/h) × Duration_micro (h) × (1 - Filtration_Efficiency) ]
+ *
+ * Physical Microenvironments:
+ * 1. Outdoor Commute: Ambient concentration adjusted for transit cabin filtration (e.g. AC cabin ~60% reduction)
+ *    and personal respirator penetration (N95 tight: 8% penetration; typical: 20% penetration).
+ *    Breathing rate: 1.40 m³/h (moderate commute) or 2.20 m³/h (bicycle).
+ * 2. Indoor Residence: Steady-state concentration from single-zone mass balance model.
+ *    Breathing rate: 0.60 m³/h (sedentary indoor).
+ *
+ * Citations:
+ * - US EPA Exposure Factors Handbook (2011 Edition, EPA/600/R-09/052F), Table 6-1.
+ * - CPCB (2014) National Air Quality Index report for health hazard breakpoint classification.
+ *
+ * @param profile Personal exposure profile including ambient air quality, commute mode, and mitigation gear
+ * @returns Inhaled particulate mass intake (µg), baseline exposure dose (µg·h/m³), and health risk tier
  */
 export function calculateDailyExposure(profile: ExposureProfile): ExposureResult {
   const naqiInfo = getNaqiCategory(profile.currentAqi);
@@ -328,7 +364,14 @@ export function calculateDailyExposure(profile: ExposureProfile): ExposureResult
 }
 
 /**
- * Live what-if evaluation: compares current profile with user-modified parameters.
+ * Evaluates a counterfactual "What-If" scenario by comparing the baseline exposure against modified parameters.
+ *
+ * Quantifies delta in daily inhaled PM2.5 mass (µg) and exposure dose (µg·h/m³) attributable to
+ * specific interventions (e.g. switching to N95 respirator, running indoor air filtration, or shifting commute).
+ *
+ * @param currentProfile Baseline exposure profile with current habits and mitigations
+ * @param overrides Partial overrides representing proposed behavioral or protective interventions
+ * @returns Scenario comparison including avoided inhaled mass (µg), percentage reduction, and physical assumptions
  */
 export function evaluateWhatIf(
   currentProfile: ExposureProfile,

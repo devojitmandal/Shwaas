@@ -65,6 +65,19 @@ export interface CalculateBudgetParams {
   activities: BudgetActivity[];
 }
 
+/**
+ * Calculates time-resolved personal particulate intake (Breath Budget) across planned activities.
+ *
+ * Physical Model & Units:
+ * - Inhaled Mass: Mass (µg) = PM2.5 Concentration (µg/m³) × Breathing Rate (m³/h) × Duration (h).
+ * - Reference Intake Benchmark: 216 µg/day, corresponding to 24-hour sedentary breathing (0.60 m³/h,
+ *   equivalent to 14.4 m³/day total inhalation) at the WHO 2021 24-hour guideline of 15 µg/m³.
+ * - Relative Points: 100 points = 216 µg reference intake (2.16 µg per budget point).
+ * - Breathing Rates: Derived from EPA Exposure Factors Handbook (2011) Table 6-1 (minute ventilation).
+ *
+ * @param params Calculation parameters including current PM2.5, hourly forecast, and activity schedule
+ * @returns Comprehensive Breath Budget result with inhaled mass (µg), avoided mass (µg), and points
+ */
 export function calculateBreathBudget(params: CalculateBudgetParams): BreathBudgetResult {
   const { currentPm25, hourlyPm25Forecast = [], activities } = params;
 
@@ -389,6 +402,24 @@ export interface HouseholdProfileLike {
   outdoorHours: number;
 }
 
+/**
+ * Calculates individualized daily particulate intake budgets for each demographic in a household.
+ *
+ * Age-Adjusted Ventilation & Activity Profiles:
+ * - Adult (18-64 yrs): Base outdoor commute duration, 0.60 m³/h resting indoor, 1.40 m³/h commute.
+ * - Child (< 12 yrs): Scaled lung minute ventilation per body mass; accounts for school transit & active play.
+ * - Senior (65+ yrs): Reduced outdoor duration profile; vulnerability weighting for cardiovascular/pulmonary risk.
+ *
+ * Citation:
+ * - US EPA Exposure Factors Handbook (2011 Edition, EPA/600/R-09/052F), Chapter 6 (Inhalation Rates).
+ * - WHO Air Quality Guidelines (2021 global update).
+ *
+ * @param profile Household demographics, commute mode, and filtration mitigations
+ * @param currentPm25 Current ambient PM2.5 in µg/m³
+ * @param hourlyPm25Forecast 24-hour hourly ambient PM2.5 array in µg/m³
+ * @param whatIfOverrides Optional counterfactual parameter overrides
+ * @returns Array of individual member budget results with inhaled mass in µg and point scale
+ */
 export function calculateHouseholdPerPersonBudgets(
   profile: HouseholdProfileLike,
   currentPm25: number,

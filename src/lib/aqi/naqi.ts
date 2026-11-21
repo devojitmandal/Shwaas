@@ -130,6 +130,24 @@ export function calculateSubIndex(concentration: number, breakpoints: Breakpoint
   return 500;
 }
 
+/**
+ * Resolves NAQI numerical index to its standardized Indian CPCB health category and UI tokens.
+ *
+ * Categories & Breakpoints (CPCB 2014):
+ * - Good: 0 – 50
+ * - Satisfactory: 51 – 100
+ * - Moderate: 101 – 200
+ * - Poor: 201 – 300
+ * - Very Poor: 301 – 400
+ * - Severe: 401 – 500
+ *
+ * Citation:
+ * - Central Pollution Control Board (CPCB), Ministry of Environment, Forest and Climate Change,
+ *   Government of India (October 2014). "National Air Quality Index".
+ *
+ * @param aqi Numerical NAQI value (0-500)
+ * @returns Category classification, text description, background chip color, and accessible text color
+ */
 export function getNaqiCategory(aqi: number): NaqiCategoryDetails {
   const cappedAqi = Math.min(500, Math.max(0, aqi));
   if (cappedAqi <= 50) return NAQI_CATEGORIES.Good;
@@ -150,8 +168,18 @@ export interface NaqiResult {
 }
 
 /**
- * Calculates overall NAQI as the maximum of PM2.5 and PM10 sub-indices
- * as per Central Pollution Control Board (CPCB) methodology.
+ * Calculates the overall National Air Quality Index (NAQI) as the maximum of PM2.5 and PM10 sub-indices.
+ *
+ * Sub-index calculation uses piecewise linear interpolation across standard CPCB breakpoints:
+ * I = I_low + ((I_high - I_low) / (C_high - C_low)) * (C - C_low)
+ *
+ * Citation:
+ * - Central Pollution Control Board (CPCB), Ministry of Environment, Forest and Climate Change,
+ *   Government of India (October 2014). "National Air Quality Index", Section 3: Sub-index and Aggregation.
+ *
+ * @param pm25 24-hour average or instantaneous PM2.5 concentration in µg/m³
+ * @param pm10 24-hour average or instantaneous PM10 concentration in µg/m³
+ * @returns Composite NAQI index (0-500), individual sub-indices, dominant pollutant, and health category details
  */
 export function calculateNaqi(pm25: number, pm10: number): NaqiResult {
   const pm25Sub = calculateSubIndex(pm25, PM25_BREAKPOINTS);
