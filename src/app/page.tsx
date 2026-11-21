@@ -31,11 +31,35 @@ import {
 import { PlanResponse, generateFallbackPlan } from '@/lib/plan/planSchema';
 import { calculateDailyExposure, ExposureResult } from '@/lib/exposure/engine';
 import { SupportedLanguage, translations } from '@/lib/i18n/translations';
-import { Loader2, AlertCircle, Users } from 'lucide-react';
+import { SecondaryShade, SECONDARY_SHADES } from '@/lib/theme/shadeTheme';
+import {
+  Loader2,
+  AlertCircle,
+  Users,
+  TrendingUp,
+  ChevronDown,
+  Sliders,
+  Info,
+  Share2,
+  Home as HomeIcon,
+  Activity,
+} from 'lucide-react';
 
 export default function Home() {
   // Localization state (en | hi | kn)
   const [language, setLanguage] = useState<SupportedLanguage>('en');
+
+  // Secondary color shade state (teal | amber | indigo | rose | slate)
+  const [secondaryShade, setSecondaryShade] = useState<SecondaryShade>('teal');
+  const shade = SECONDARY_SHADES[secondaryShade];
+
+  // Progressive disclosure states (keeps initial view clean & breathable)
+  const [showHourlyChart, setShowHourlyChart] = useState(false);
+  const [showWhatIf, setShowWhatIf] = useState(false);
+  const [showExplainer, setShowExplainer] = useState(false);
+  const [showIndoorTools, setShowIndoorTools] = useState(false);
+  const [showImpactDashboard, setShowImpactDashboard] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
 
   // Location & AQI state
   const [currentLocation, setCurrentLocation] = useState({
@@ -176,15 +200,17 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-teal-100 selection:text-teal-900">
-      {/* Scroll-aware Header */}
+      {/* Scroll-aware Header with Secondary Shade Selector */}
       <Header
         onCommunityClick={() => setIsCommunityModalOpen(true)}
         onProfileClick={() => setIsProfileModalOpen(true)}
         language={language}
         onLanguageChange={setLanguage}
+        secondaryShade={secondaryShade}
+        onShadeChange={setSecondaryShade}
       />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pb-24 space-y-10">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-24 pb-28 space-y-8">
         {/* Hero Section */}
         <HeroTitle
           title={
@@ -197,20 +223,30 @@ export default function Home() {
           subtitle={translations[language].heroSubtitle}
         />
 
-        {/* Location Selector & Geolocation */}
-        <section aria-label="Location and Air Quality Controls" className="space-y-4">
-          <LocationSearch
-            currentCity={currentLocation.name}
-            isLoading={isAqiLoading}
-            onSelectCity={(city) => {
-              setCurrentLocation(city);
-            }}
-          />
+        {/* Clean Top Bar: Location Search + Quick Profile Pill */}
+        <section aria-label="Location and Profile Controls" className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="md:col-span-2">
+              <LocationSearch
+                currentCity={currentLocation.name}
+                isLoading={isAqiLoading}
+                onSelectCity={(city) => {
+                  setCurrentLocation(city);
+                }}
+              />
+            </div>
+            <div>
+              <ProfileBadge
+                profile={profile}
+                onEditClick={() => setIsProfileModalOpen(true)}
+              />
+            </div>
+          </div>
 
           {aqiError && (
             <div
               role="alert"
-              className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between"
+              className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between"
             >
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -232,171 +268,277 @@ export default function Home() {
           )}
         </section>
 
-        {/* Household Profile Strip */}
-        <section aria-label="Household Profile Settings">
-          <ProfileBadge
-            profile={profile}
-            onEditClick={() => setIsProfileModalOpen(true)}
-          />
-        </section>
-
-        {/* Live AQI & Hourly Forecast Progression */}
+        {/* Loading Skeleton */}
         {isAqiLoading && !airData ? (
           <div className="p-16 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-3">
-            <Loader2 className="w-8 h-8 text-teal-800 animate-spin" aria-hidden="true" />
+            <Loader2 className={`w-8 h-8 ${shade.accentText} animate-spin`} aria-hidden="true" />
             <p className="text-sm font-medium text-slate-600">
-              Fetching Open-Meteo atmospheric telemetry and computing CPCB NAQI...
+              Fetching atmospheric telemetry and computing CPCB NAQI...
             </p>
           </div>
         ) : airData ? (
-          <div className="space-y-6">
-            {/* Live AQI Card */}
-            <CurrentAqiCard
-              cityName={airData.cityName}
-              aqi={airData.current.aqi}
-              pm25={airData.current.pm25}
-              pm10={airData.current.pm10}
-              dominantPollutant={airData.current.dominantPollutant}
-              category={airData.current.category}
-              chipBg={airData.current.chipBg}
-              textColor={airData.current.textColor}
-              description={airData.current.description}
-              timestamp={airData.current.time}
-            />
+          <div className="space-y-7">
+            {/* 1. Primary Air Quality Telemetry & Diurnal Window */}
+            <div className="space-y-4">
+              <CurrentAqiCard
+                cityName={airData.cityName}
+                aqi={airData.current.aqi}
+                pm25={airData.current.pm25}
+                pm10={airData.current.pm10}
+                dominantPollutant={airData.current.dominantPollutant}
+                category={airData.current.category}
+                chipBg={airData.current.chipBg}
+                textColor={airData.current.textColor}
+                description={airData.current.description}
+                timestamp={airData.current.time}
+              />
 
-            {/* Scientific Atmospheric Data Provenance Notice */}
-            <div className="p-3.5 rounded-xl bg-white/80 border border-slate-200/80 text-[11px] text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-100 text-teal-800">
-                  Open-Meteo Atmospheric Chemistry
+              <TimeWindowsCard
+                bestWindow={airData.bestWindow}
+                worstWindow={airData.worstWindow}
+                noSafeWindowAvailable={airData.windowRecommendations?.noSafeWindowAvailable}
+                alertHeadline={airData.windowRecommendations?.alertHeadline}
+              />
+
+              {/* On-Demand Button for 24-Hour Hourly Forecast Chart */}
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[11px] text-slate-500">
+                  Open-Meteo European CAMS / SILAM Ensemble Forecast
                 </span>
-                <span>
-                  Satellite & atmospheric model forecast (Copernicus / SILAM / CAMS ensemble). Not a substitute for continuous physical ground-station monitoring (CPCB / DPCC).
+                <button
+                  type="button"
+                  onClick={() => setShowHourlyChart(!showHourlyChart)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                    showHourlyChart
+                      ? `${shade.buttonBg} ${shade.buttonText} shadow-xs`
+                      : `${shade.badgeBg} ${shade.badgeText} ${shade.badgeBorder} hover:brightness-95`
+                  }`}
+                >
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  <span>{showHourlyChart ? 'Hide Forecast Curve' : 'View 24-Hour Forecast Curve'}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showHourlyChart ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+
+              {showHourlyChart && (
+                <div className="pt-2">
+                  <HourlyChart
+                    hourly={airData.hourly}
+                    bestStartTime={airData.bestWindow.startTime}
+                    worstStartTime={airData.worstWindow.startTime}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* 2. Family Breath Budget Ledger */}
+            <div className="space-y-3">
+              <BreathBudgetTracker
+                currentAqi={airData.current.aqi}
+                pm25={airData.current.pm25}
+                hasPurifier={profile.hasPurifier}
+                maskType={profile.maskType}
+                commuteType={profile.commuteType}
+                hourlyPm25Forecast={airData.hourly.map((h) => h.pm25)}
+                numKids={profile.numKids}
+                numElderly={profile.numElderly}
+                outdoorHours={profile.outdoorHours}
+              />
+
+              {/* Progressive Disclosure Buttons for What-If & Scientific Formulas */}
+              <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 px-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowWhatIf(!showWhatIf)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      showWhatIf
+                        ? `${shade.buttonBg} ${shade.buttonText} shadow-xs`
+                        : `${shade.badgeBg} ${shade.badgeText} ${shade.badgeBorder} hover:brightness-95`
+                    }`}
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>{showWhatIf ? 'Close Simulator' : 'Test What-If Interventions'}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showWhatIf ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {exposure && (
+                    <button
+                      type="button"
+                      onClick={() => setShowExplainer(!showExplainer)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all shadow-2xs"
+                    >
+                      <Info className="w-3.5 h-3.5 text-slate-600" />
+                      <span>{showExplainer ? 'Hide Science & Formula' : 'Dose Formula & Scientific Breakdown'}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showExplainer ? 'rotate-180' : ''}`} />
+                    </button>
+                  )}
+                </div>
+
+                <span className="text-[11px] text-slate-600">
+                  Relative lifestyle score benchmarked against WHO 24h intake (1 pt ≈ 2.16 µg)
                 </span>
               </div>
-              <span className="text-[10px] text-slate-600 font-mono shrink-0">
-                Data Synced: {new Date(airData.current.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
+
+              {showWhatIf && (
+                <div className="pt-2">
+                  <WhatIfSimulator
+                    currentProfile={{
+                      ...profile,
+                      currentAqi: airData.current.aqi,
+                      pm25Concentration: airData.current.pm25,
+                      timeOutdoorsHours: profile.outdoorHours,
+                      indoorHours: Math.max(0, 24 - profile.outdoorHours),
+                      vulnerableMembers: {
+                        hasKids: profile.numKids > 0,
+                        hasElderly: profile.numElderly > 0,
+                      },
+                    }}
+                  />
+                </div>
+              )}
+
+              {showExplainer && exposure && (
+                <div className="pt-2">
+                  <ImpactExplainer exposure={exposure} />
+                </div>
+              )}
             </div>
 
-            {/* Best and Worst Outdoor Time Windows */}
-            <TimeWindowsCard
-              bestWindow={airData.bestWindow}
-              worstWindow={airData.worstWindow}
-              noSafeWindowAvailable={airData.windowRecommendations?.noSafeWindowAvailable}
-              alertHeadline={airData.windowRecommendations?.alertHeadline}
-            />
+            {/* 3. Actionable Smog Defense Plan */}
+            {plan ? (
+              <div className="space-y-3">
+                <TodaysPlanView
+                  plan={plan}
+                  isLoading={isPlanLoading}
+                  source={planSource}
+                  onRefresh={() => airData && loadPlan(airData, profile)}
+                />
 
-            {/* 24-Hour Forecast Chart */}
-            <HourlyChart
-              hourly={airData.hourly}
-              bestStartTime={airData.bestWindow.startTime}
-              worstStartTime={airData.worstWindow.startTime}
-            />
+                <div className="flex justify-end pt-1 px-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowShareCard(!showShareCard)}
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      showShareCard
+                        ? `${shade.buttonBg} ${shade.buttonText} shadow-xs`
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
+                    }`}
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>{showShareCard ? 'Hide Share Card' : 'Generate WhatsApp Share Card'}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showShareCard ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
 
-            {/* Breath Budget Exposure Tracker */}
-            <BreathBudgetTracker
-              currentAqi={airData.current.aqi}
-              pm25={airData.current.pm25}
-              hasPurifier={profile.hasPurifier}
-              maskType={profile.maskType}
-              commuteType={profile.commuteType}
-              hourlyPm25Forecast={airData.hourly.map((h) => h.pm25)}
-              numKids={profile.numKids}
-              numElderly={profile.numElderly}
-              outdoorHours={profile.outdoorHours}
-            />
+                {showShareCard && (
+                  <div className="pt-2">
+                    <WhatsAppShareCard
+                      cityName={airData.cityName}
+                      aqi={airData.current.aqi}
+                      pm25={airData.current.pm25}
+                      category={airData.current.category}
+                      bestWindow={airData.bestWindow}
+                      worstWindow={airData.worstWindow}
+                      dominantPollutant={airData.current.dominantPollutant}
+                      noSafeWindowAvailable={airData.windowRecommendations?.noSafeWindowAvailable}
+                      alertHeadline={airData.windowRecommendations?.alertHeadline}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : isPlanLoading ? (
+              <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-3">
+                <Loader2 className={`w-7 h-7 ${shade.accentText} animate-spin`} aria-hidden="true" />
+                <p className="text-sm font-medium text-slate-600">
+                  Generating tailored smog defense protocol...
+                </p>
+              </div>
+            ) : null}
+
+            {/* 4. Advanced Physical Labs & Deep Verification (Progressive On-Demand Cards) */}
+            <section aria-label="Advanced Air Quality Tools" className="pt-6 border-t border-slate-200/60 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-serif font-bold text-slate-900 tracking-tight">
+                    Advanced Physical Modeling & Impact Verification
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    On-demand tools: steady-state mass-balance room modeling, Gemini photo audit, and verified impact metrics.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowIndoorTools(!showIndoorTools)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      showIndoorTools
+                        ? `${shade.buttonBg} ${shade.buttonText} shadow-xs`
+                        : `${shade.badgeBg} ${shade.badgeText} ${shade.badgeBorder} hover:brightness-95`
+                    }`}
+                  >
+                    <HomeIcon className="w-3.5 h-3.5" />
+                    <span>{showIndoorTools ? 'Hide Indoor Tools' : 'Indoor Model & Photo Audit'}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showIndoorTools ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {exposure && (
+                    <button
+                      type="button"
+                      onClick={() => setShowImpactDashboard(!showImpactDashboard)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                        showImpactDashboard
+                          ? `${shade.buttonBg} ${shade.buttonText} shadow-xs`
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
+                      }`}
+                    >
+                      <Activity className="w-3.5 h-3.5" />
+                      <span>{showImpactDashboard ? 'Hide Impact' : 'Measured Impact'}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showImpactDashboard ? 'rotate-180' : ''}`} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {showIndoorTools && (
+                <div className="space-y-6 pt-2">
+                  <IndoorAirModel outdoorPm25={airData.current.pm25} />
+                  <PhotoRoomAudit outdoorPm25={airData.current.pm25} />
+                </div>
+              )}
+
+              {showImpactDashboard && exposure && (
+                <div className="pt-2">
+                  <MyImpactDashboard exposure={exposure} cityName={airData.cityName} />
+                </div>
+              )}
+            </section>
           </div>
         ) : null}
 
-        {/* Deterministic Exposure Engine Breakdown */}
-        {exposure && airData && (
-          <div className="space-y-6">
-            <ImpactExplainer
-              exposure={exposure}
-            />
-
-            {/* Live What-If Interactive Sandbox */}
-            <WhatIfSimulator
-              currentProfile={{
-                ...profile,
-                currentAqi: airData.current.aqi,
-                pm25Concentration: airData.current.pm25,
-                timeOutdoorsHours: profile.outdoorHours,
-                indoorHours: Math.max(0, 24 - profile.outdoorHours),
-                vulnerableMembers: {
-                  hasKids: profile.numKids > 0,
-                  hasElderly: profile.numElderly > 0,
-                },
-              }}
-            />
-
-            {/* Physical Single-Zone Indoor Mass-Balance Room Modeling */}
-            <IndoorAirModel outdoorPm25={airData.current.pm25} />
-
-            {/* AI Photo Room Audit for Infiltration & Sources */}
-            <PhotoRoomAudit outdoorPm25={airData.current.pm25} />
-
-            {/* Measurable Impact Dashboard: Baseline vs Optimized Routine */}
-            <MyImpactDashboard exposure={exposure} cityName={airData.cityName} />
-          </div>
-        )}
-
-        {/* Today's Personalized Smog Plan */}
-        {plan && airData ? (
-          <div className="space-y-6">
-            <TodaysPlanView
-              plan={plan}
-              isLoading={isPlanLoading}
-              source={planSource}
-              onRefresh={() => airData && loadPlan(airData, profile)}
-            />
-
-            {/* WhatsApp Visual Share Card Generator */}
-            <WhatsAppShareCard
-              cityName={airData.cityName}
-              aqi={airData.current.aqi}
-              pm25={airData.current.pm25}
-              category={airData.current.category}
-              bestWindow={airData.bestWindow}
-              worstWindow={airData.worstWindow}
-              dominantPollutant={airData.current.dominantPollutant}
-              noSafeWindowAvailable={airData.windowRecommendations?.noSafeWindowAvailable}
-              alertHeadline={airData.windowRecommendations?.alertHeadline}
-            />
-          </div>
-        ) : isPlanLoading ? (
-          <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-3">
-            <Loader2 className="w-7 h-7 text-teal-800 animate-spin" aria-hidden="true" />
-            <p className="text-sm font-medium text-slate-600">
-              Generating tailored smog defense protocol...
-            </p>
-          </div>
-        ) : null}
-
-        {/* Community Mode Banner */}
+        {/* 5. Minimal Breathable Community Mode Strip */}
         <section
           aria-labelledby="community-banner-title"
-          className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
+          className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
         >
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-800">
               <Users className="w-4 h-4 text-teal-800" aria-hidden="true" />
-              <span id="community-banner-title">Community Self-Defense</span>
+              <span id="community-banner-title">Community Clean-Air Mode</span>
             </div>
-            <h3 className="text-xl font-serif font-bold text-slate-900 tracking-tight">
-              Apartment Society & School Clean-Air Checklists
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-relaxed">
-              Collective action against winter smog. Generate, print, or share printable protocols to ban open burning, provide guard heaters, and adjust school timings.
+            <h4 className="text-base font-serif font-bold text-slate-900 tracking-tight">
+              Apartment Society & School Clean-Air Protocols
+            </h4>
+            <p className="text-xs text-slate-500 max-w-lg">
+              Printable action checklists for RWAs, night security guard heaters, and morning assembly adjustments.
             </p>
           </div>
 
           <button
             onClick={() => setIsCommunityModalOpen(true)}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-teal-800 hover:bg-teal-900 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors shrink-0 focus-visible:outline-2 focus-visible:outline-teal-800"
+            className={`inline-flex items-center justify-center gap-2 px-4 py-2 ${shade.buttonBg} ${shade.buttonHover} text-white rounded-xl text-xs font-semibold shadow-xs transition-colors shrink-0 focus-visible:outline-2`}
           >
-            <Users className="w-4 h-4 text-teal-200" aria-hidden="true" />
+            <Users className="w-4 h-4 text-white/80" aria-hidden="true" />
             <span>Open Community Mode</span>
           </button>
         </section>
