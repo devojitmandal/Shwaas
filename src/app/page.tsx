@@ -31,7 +31,7 @@ import {
 import { PlanResponse, generateFallbackPlan } from '@/lib/plan/planSchema';
 import { calculateDailyExposure, ExposureResult } from '@/lib/exposure/engine';
 import { SupportedLanguage, translations } from '@/lib/i18n/translations';
-import { SecondaryShade, SECONDARY_SHADES } from '@/lib/theme/shadeTheme';
+import { SECONDARY_SHADES } from '@/lib/theme/shadeTheme';
 import {
   Loader2,
   AlertCircle,
@@ -49,9 +49,8 @@ export default function Home() {
   // Localization state (en | hi | kn)
   const [language, setLanguage] = useState<SupportedLanguage>('en');
 
-  // Secondary color shade state (teal | amber | indigo | rose | slate)
-  const [secondaryShade, setSecondaryShade] = useState<SecondaryShade>('teal');
-  const shade = SECONDARY_SHADES[secondaryShade];
+  // Cohesive brand secondary color (Sage Teal)
+  const shade = SECONDARY_SHADES.teal;
 
   // Progressive disclosure states (keeps initial view clean & breathable)
   const [showHourlyChart, setShowHourlyChart] = useState(false);
@@ -200,14 +199,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-teal-100 selection:text-teal-900">
-      {/* Scroll-aware Header with Secondary Shade Selector */}
+      {/* Scroll-aware Header */}
       <Header
         onCommunityClick={() => setIsCommunityModalOpen(true)}
         onProfileClick={() => setIsProfileModalOpen(true)}
         language={language}
         onLanguageChange={setLanguage}
-        secondaryShade={secondaryShade}
-        onShadeChange={setSecondaryShade}
       />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-24 pb-28 space-y-8">

@@ -4,7 +4,6 @@ import { useRef, useState } from 'react';
 import { motion, useScroll, useMotionValueEvent, useReducedMotion } from 'framer-motion';
 import { Wind, Users, Compass } from 'lucide-react';
 import { SupportedLanguage } from '@/lib/i18n/translations';
-import { SecondaryShade, SECONDARY_SHADES } from '@/lib/theme/shadeTheme';
 
 const TOP_ZONE = 80;
 const HIDE_AFTER = 50;
@@ -15,8 +14,6 @@ interface HeaderProps {
   onProfileClick?: () => void;
   language?: SupportedLanguage;
   onLanguageChange?: (lang: SupportedLanguage) => void;
-  secondaryShade?: SecondaryShade;
-  onShadeChange?: (shade: SecondaryShade) => void;
 }
 
 export default function Header({
@@ -24,8 +21,6 @@ export default function Header({
   onProfileClick,
   language = 'en',
   onLanguageChange,
-  secondaryShade = 'teal',
-  onShadeChange,
 }: HeaderProps) {
   const { scrollY } = useScroll();
   const reduce = useReducedMotion();
@@ -74,37 +69,6 @@ export default function Header({
         </div>
 
         <nav aria-label="Main Navigation" className="flex items-center gap-2 sm:gap-3 text-xs font-medium">
-          {/* Secondary Color Shade Switcher */}
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 border border-slate-200"
-            role="group"
-            aria-label="Secondary accent shade"
-          >
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-600 hidden md:inline mr-0.5">
-              Shade
-            </span>
-            {(Object.keys(SECONDARY_SHADES) as SecondaryShade[]).map((shadeKey) => {
-              const shade = SECONDARY_SHADES[shadeKey];
-              const isSelected = secondaryShade === shadeKey;
-              return (
-                <button
-                  key={shadeKey}
-                  type="button"
-                  onClick={() => onShadeChange?.(shadeKey)}
-                  title={`Secondary Accent: ${shade.label}`}
-                  aria-label={`Switch secondary shade to ${shade.label}`}
-                  aria-pressed={isSelected}
-                  className={`w-3.5 h-3.5 rounded-full transition-all ${
-                    isSelected
-                      ? 'scale-125 ring-2 ring-slate-800 ring-offset-1 shadow-2xs'
-                      : 'opacity-70 hover:opacity-100 hover:scale-110'
-                  }`}
-                  style={{ backgroundColor: shade.dotColor }}
-                />
-              );
-            })}
-          </div>
-
           {/* Language Switcher */}
           <div className="flex items-center bg-slate-100 rounded-full p-0.5 border border-slate-200" role="group" aria-label="Language selector">
             <button
