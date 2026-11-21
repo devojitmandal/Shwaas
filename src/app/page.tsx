@@ -37,13 +37,15 @@ import {
   AlertCircle,
   Users,
   TrendingUp,
-  ChevronDown,
   Sliders,
   Info,
   Share2,
   Home as HomeIcon,
   Activity,
+  X,
 } from 'lucide-react';
+
+type ActiveTool = 'forecast' | 'whatif' | 'indoor' | 'science' | 'impact' | 'share' | null;
 
 export default function Home() {
   // Localization state (en | hi | kn)
@@ -52,13 +54,12 @@ export default function Home() {
   // Cohesive brand secondary color (Sage Teal)
   const shade = SECONDARY_SHADES.teal;
 
-  // Progressive disclosure states (keeps initial view clean & breathable)
-  const [showHourlyChart, setShowHourlyChart] = useState(false);
-  const [showWhatIf, setShowWhatIf] = useState(false);
-  const [showExplainer, setShowExplainer] = useState(false);
-  const [showIndoorTools, setShowIndoorTools] = useState(false);
-  const [showImpactDashboard, setShowImpactDashboard] = useState(false);
-  const [showShareCard, setShowShareCard] = useState(false);
+  // Progressive disclosure: Interactive Analysis Workbench (at most one tool active)
+  const [activeTool, setActiveTool] = useState<ActiveTool>(null);
+
+  const toggleTool = (tool: ActiveTool) => {
+    setActiveTool((prev) => (prev === tool ? null : tool));
+  };
 
   // Location & AQI state
   const [currentLocation, setCurrentLocation] = useState({
@@ -297,38 +298,31 @@ export default function Home() {
                 alertHeadline={airData.windowRecommendations?.alertHeadline}
               />
 
-              {/* On-Demand Button for 24-Hour Hourly Forecast Chart */}
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[11px] text-slate-500">
-                  Open-Meteo European CAMS / SILAM Ensemble Forecast
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowHourlyChart(!showHourlyChart)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                    showHourlyChart
-                      ? `${shade.buttonBg} ${shade.buttonText} shadow-xs`
-                      : `${shade.badgeBg} ${shade.badgeText} ${shade.badgeBorder} hover:brightness-95`
-                  }`}
-                >
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  <span>{showHourlyChart ? 'Hide Forecast Curve' : 'View 24-Hour Forecast Curve'}</span>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showHourlyChart ? 'rotate-180' : ''}`} />
-                </button>
+              {/* European CAMS/SILAM Telemetry Notice */}
+              <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
+                <span>Open-Meteo European CAMS / SILAM Ensemble Forecast</span>
+                <span>Calibrated against CPCB NAQI break-points</span>
               </div>
-
-              {showHourlyChart && (
-                <div className="pt-2">
-                  <HourlyChart
-                    hourly={airData.hourly}
-                    bestStartTime={airData.bestWindow.startTime}
-                    worstStartTime={airData.worstWindow.startTime}
-                  />
-                </div>
-              )}
             </div>
 
-            {/* 2. Family Breath Budget Ledger */}
+            {/* 2. Actionable Smog Defense Plan */}
+            {plan ? (
+              <TodaysPlanView
+                plan={plan}
+                isLoading={isPlanLoading}
+                source={planSource}
+                onRefresh={() => airData && loadPlan(airData, profile)}
+              />
+            ) : isPlanLoading ? (
+              <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-3">
+                <Loader2 className={`w-7 h-7 ${shade.accentText} animate-spin`} aria-hidden="true" />
+                <p className="text-sm font-medium text-slate-600">
+                  Generating tailored smog defense protocol...
+                </p>
+              </div>
+            ) : null}
+
+            {/* 3. Family Breath Budget Ledger */}
             <div className="space-y-3">
               <BreathBudgetTracker
                 currentAqi={airData.current.aqi}
@@ -341,172 +335,183 @@ export default function Home() {
                 numElderly={profile.numElderly}
                 outdoorHours={profile.outdoorHours}
               />
-
-              {/* Progressive Disclosure Buttons for What-If & Scientific Formulas */}
-              <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 px-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowWhatIf(!showWhatIf)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                      showWhatIf
-                        ? `${shade.buttonBg} ${shade.buttonText} shadow-xs`
-                        : `${shade.badgeBg} ${shade.badgeText} ${shade.badgeBorder} hover:brightness-95`
-                    }`}
-                  >
-                    <Sliders className="w-3.5 h-3.5" />
-                    <span>{showWhatIf ? 'Close Simulator' : 'Test What-If Interventions'}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showWhatIf ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {exposure && (
-                    <button
-                      type="button"
-                      onClick={() => setShowExplainer(!showExplainer)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all shadow-2xs"
-                    >
-                      <Info className="w-3.5 h-3.5 text-slate-600" />
-                      <span>{showExplainer ? 'Hide Science & Formula' : 'Dose Formula & Scientific Breakdown'}</span>
-                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showExplainer ? 'rotate-180' : ''}`} />
-                    </button>
-                  )}
-                </div>
-
-                <span className="text-[11px] text-slate-600">
+              <div className="flex justify-end px-1">
+                <span className="text-[11px] text-slate-500">
                   Relative lifestyle score benchmarked against WHO 24h intake (1 pt ≈ 2.16 µg)
                 </span>
               </div>
-
-              {showWhatIf && (
-                <div className="pt-2">
-                  <WhatIfSimulator
-                    currentProfile={{
-                      ...profile,
-                      currentAqi: airData.current.aqi,
-                      pm25Concentration: airData.current.pm25,
-                      timeOutdoorsHours: profile.outdoorHours,
-                      indoorHours: Math.max(0, 24 - profile.outdoorHours),
-                      vulnerableMembers: {
-                        hasKids: profile.numKids > 0,
-                        hasElderly: profile.numElderly > 0,
-                      },
-                    }}
-                  />
-                </div>
-              )}
-
-              {showExplainer && exposure && (
-                <div className="pt-2">
-                  <ImpactExplainer exposure={exposure} />
-                </div>
-              )}
             </div>
 
-            {/* 3. Actionable Smog Defense Plan */}
-            {plan ? (
-              <div className="space-y-3">
-                <TodaysPlanView
-                  plan={plan}
-                  isLoading={isPlanLoading}
-                  source={planSource}
-                  onRefresh={() => airData && loadPlan(airData, profile)}
-                />
-
-                <div className="flex justify-end pt-1 px-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowShareCard(!showShareCard)}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                      showShareCard
-                        ? `${shade.buttonBg} ${shade.buttonText} shadow-xs`
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
-                    }`}
-                  >
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span>{showShareCard ? 'Hide Share Card' : 'Generate WhatsApp Share Card'}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showShareCard ? 'rotate-180' : ''}`} />
-                  </button>
-                </div>
-
-                {showShareCard && (
-                  <div className="pt-2">
-                    <WhatsAppShareCard
-                      cityName={airData.cityName}
-                      aqi={airData.current.aqi}
-                      pm25={airData.current.pm25}
-                      category={airData.current.category}
-                      bestWindow={airData.bestWindow}
-                      worstWindow={airData.worstWindow}
-                      dominantPollutant={airData.current.dominantPollutant}
-                      noSafeWindowAvailable={airData.windowRecommendations?.noSafeWindowAvailable}
-                      alertHeadline={airData.windowRecommendations?.alertHeadline}
-                    />
-                  </div>
-                )}
-              </div>
-            ) : isPlanLoading ? (
-              <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-3">
-                <Loader2 className={`w-7 h-7 ${shade.accentText} animate-spin`} aria-hidden="true" />
-                <p className="text-sm font-medium text-slate-600">
-                  Generating tailored smog defense protocol...
-                </p>
-              </div>
-            ) : null}
-
-            {/* 4. Advanced Physical Labs & Deep Verification (Progressive On-Demand Cards) */}
-            <section aria-label="Advanced Air Quality Tools" className="pt-6 border-t border-slate-200/60 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* 4. Interactive Analysis Workbench (Progressive On-Demand Tools) */}
+            <section
+              aria-labelledby="workbench-heading"
+              className="space-y-4 pt-6 border-t border-slate-200/80"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
                 <div>
-                  <h3 className="text-base font-serif font-bold text-slate-900 tracking-tight">
-                    Advanced Physical Modeling & Impact Verification
-                  </h3>
+                  <h2 id="workbench-heading" className="text-sm font-bold uppercase tracking-wider text-slate-800">
+                    Interactive Analysis Workbench
+                  </h2>
                   <p className="text-xs text-slate-500">
-                    On-demand tools: steady-state mass-balance room modeling, Gemini photo audit, and verified impact metrics.
+                    Open specialized modules on demand for forecast curves, simulations, indoor physics, and verified impact.
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                {activeTool && (
                   <button
                     type="button"
-                    onClick={() => setShowIndoorTools(!showIndoorTools)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                      showIndoorTools
-                        ? `${shade.buttonBg} ${shade.buttonText} shadow-xs`
-                        : `${shade.badgeBg} ${shade.badgeText} ${shade.badgeBorder} hover:brightness-95`
-                    }`}
+                    onClick={() => setActiveTool(null)}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-2.5 py-1 rounded-lg transition-colors shadow-2xs self-start sm:self-auto focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-1 focus-visible:outline-hidden"
                   >
-                    <HomeIcon className="w-3.5 h-3.5" />
-                    <span>{showIndoorTools ? 'Hide Indoor Tools' : 'Indoor Model & Photo Audit'}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showIndoorTools ? 'rotate-180' : ''}`} />
+                    <X className="w-3.5 h-3.5" />
+                    <span>Close Module</span>
                   </button>
-
-                  {exposure && (
-                    <button
-                      type="button"
-                      onClick={() => setShowImpactDashboard(!showImpactDashboard)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                        showImpactDashboard
-                          ? `${shade.buttonBg} ${shade.buttonText} shadow-xs`
-                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
-                      }`}
-                    >
-                      <Activity className="w-3.5 h-3.5" />
-                      <span>{showImpactDashboard ? 'Hide Impact' : 'Measured Impact'}</span>
-                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showImpactDashboard ? 'rotate-180' : ''}`} />
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
 
-              {showIndoorTools && (
-                <div className="space-y-6 pt-2">
-                  <IndoorAirModel outdoorPm25={airData.current.pm25} />
-                  <PhotoRoomAudit outdoorPm25={airData.current.pm25} />
-                </div>
-              )}
+              {/* Segmented Tab Controls */}
+              <div
+                role="tablist"
+                aria-label="Specialized analysis tools"
+                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80"
+              >
+                {[
+                  { id: 'forecast', label: '24h Forecast', icon: TrendingUp },
+                  { id: 'whatif', label: 'What-If Sim', icon: Sliders },
+                  { id: 'indoor', label: 'Indoor & Photo', icon: HomeIcon },
+                  { id: 'science', label: 'Dose Science', icon: Info },
+                  { id: 'impact', label: 'Impact Proof', icon: Activity },
+                  { id: 'share', label: 'Share Card', icon: Share2 },
+                ].map((tool) => {
+                  const Icon = tool.icon;
+                  const isSelected = activeTool === tool.id;
+                  return (
+                    <button
+                      key={tool.id}
+                      type="button"
+                      role="tab"
+                      id={`tab-${tool.id}`}
+                      aria-selected={isSelected}
+                      aria-controls={`panel-${tool.id}`}
+                      onClick={() => toggleTool(tool.id as ActiveTool)}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2 focus-visible:outline-hidden ${
+                        isSelected
+                          ? 'bg-teal-800 text-white shadow-xs'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-slate-200/60 shadow-2xs'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{tool.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-              {showImpactDashboard && exposure && (
-                <div className="pt-2">
-                  <MyImpactDashboard exposure={exposure} cityName={airData.cityName} />
+              {/* Active Module Panel Container */}
+              {activeTool && (
+                <div
+                  role="tabpanel"
+                  id={`panel-${activeTool}`}
+                  aria-labelledby={`tab-${activeTool}`}
+                  className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200/80 shadow-xs space-y-6"
+                >
+                  {activeTool === 'forecast' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-teal-800">
+                          European CAMS / SILAM Diurnal Forecast Curve
+                        </h3>
+                        <span className="text-[11px] text-slate-500">Hourly PM2.5 & CPCB NAQI Projection</span>
+                      </div>
+                      <HourlyChart
+                        hourly={airData.hourly}
+                        bestStartTime={airData.bestWindow.startTime}
+                        worstStartTime={airData.worstWindow.startTime}
+                      />
+                    </div>
+                  )}
+
+                  {activeTool === 'whatif' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-teal-800">
+                          What-If Lifestyle & Intervention Simulator
+                        </h3>
+                        <span className="text-[11px] text-slate-500">Simulate Purifiers, Commute Shifts, and Masks</span>
+                      </div>
+                      <WhatIfSimulator
+                        currentProfile={{
+                          ...profile,
+                          currentAqi: airData.current.aqi,
+                          pm25Concentration: airData.current.pm25,
+                          timeOutdoorsHours: profile.outdoorHours,
+                          indoorHours: Math.max(0, 24 - profile.outdoorHours),
+                          vulnerableMembers: {
+                            hasKids: profile.numKids > 0,
+                            hasElderly: profile.numElderly > 0,
+                          },
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {activeTool === 'indoor' && (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-teal-800">
+                          Indoor Physical Modeling & Gemini Room Audit
+                        </h3>
+                        <span className="text-[11px] text-slate-500">Steady-state mass-balance physics & vision audit</span>
+                      </div>
+                      <IndoorAirModel outdoorPm25={airData.current.pm25} />
+                      <PhotoRoomAudit outdoorPm25={airData.current.pm25} />
+                    </div>
+                  )}
+
+                  {activeTool === 'science' && exposure && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-teal-800">
+                          Scientific Dose Formula & Evidence Breakdown
+                        </h3>
+                        <span className="text-[11px] text-slate-500">WHO 24h Intake Benchmark (1 pt ≈ 2.16 µg)</span>
+                      </div>
+                      <ImpactExplainer exposure={exposure} />
+                    </div>
+                  )}
+
+                  {activeTool === 'impact' && exposure && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-teal-800">
+                          Verified Physical Impact Dashboard
+                        </h3>
+                        <span className="text-[11px] text-slate-500">Total PM2.5 Inhalation Averted</span>
+                      </div>
+                      <MyImpactDashboard exposure={exposure} cityName={airData.cityName} />
+                    </div>
+                  )}
+
+                  {activeTool === 'share' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-teal-800">
+                          WhatsApp Clean-Air Advisory Card
+                        </h3>
+                        <span className="text-[11px] text-slate-500">Share Safe Outdoor Windows with Family</span>
+                      </div>
+                      <WhatsAppShareCard
+                        cityName={airData.cityName}
+                        aqi={airData.current.aqi}
+                        pm25={airData.current.pm25}
+                        category={airData.current.category}
+                        bestWindow={airData.bestWindow}
+                        worstWindow={airData.worstWindow}
+                        dominantPollutant={airData.current.dominantPollutant}
+                        noSafeWindowAvailable={airData.windowRecommendations?.noSafeWindowAvailable}
+                        alertHeadline={airData.windowRecommendations?.alertHeadline}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </section>

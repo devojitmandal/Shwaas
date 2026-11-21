@@ -12,7 +12,7 @@ export default function HeroTitle({ title, subtitle }: HeroTitleProps) {
 
   if (reduce) {
     return (
-      <div className="pt-24 pb-8 max-w-4xl">
+      <div className="pt-2 pb-6 max-w-4xl">
         <h1 className="text-3xl sm:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
           {title}
         </h1>
@@ -24,7 +24,7 @@ export default function HeroTitle({ title, subtitle }: HeroTitleProps) {
   }
 
   return (
-    <div className="pt-24 pb-8 max-w-4xl">
+    <div className="pt-2 pb-6 max-w-4xl">
       <motion.h1
         className="text-3xl sm:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight"
         aria-label={title}
