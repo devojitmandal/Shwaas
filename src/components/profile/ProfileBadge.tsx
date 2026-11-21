@@ -59,8 +59,9 @@ export default function ProfileBadge({ profile, onEditClick }: ProfileBadgeProps
       </div>
 
       <button
+        type="button"
         onClick={onEditClick}
-        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors shrink-0 focus-visible:outline-2 focus-visible:outline-teal-800"
+        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-1 focus-visible:outline-hidden"
       >
         <Edit3 className="w-3.5 h-3.5 text-teal-800" aria-hidden="true" />
         <span>Adjust Profile</span>

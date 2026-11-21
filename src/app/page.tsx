@@ -221,25 +221,15 @@ export default function Home() {
           subtitle={translations[language].heroSubtitle}
         />
 
-        {/* Clean Top Bar: Location Search + Quick Profile Pill */}
-        <section aria-label="Location and Profile Controls" className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="md:col-span-2">
-              <LocationSearch
-                currentCity={currentLocation.name}
-                isLoading={isAqiLoading}
-                onSelectCity={(city) => {
-                  setCurrentLocation(city);
-                }}
-              />
-            </div>
-            <div>
-              <ProfileBadge
-                profile={profile}
-                onEditClick={() => setIsProfileModalOpen(true)}
-              />
-            </div>
-          </div>
+        {/* Clean Top Bar: Location Search */}
+        <section aria-label="Location Search" className="space-y-3">
+          <LocationSearch
+            currentCity={currentLocation.name}
+            isLoading={isAqiLoading}
+            onSelectCity={(city) => {
+              setCurrentLocation(city);
+            }}
+          />
 
           {aqiError && (
             <div
@@ -322,8 +312,13 @@ export default function Home() {
               </div>
             ) : null}
 
-            {/* 3. Family Breath Budget Ledger */}
-            <div className="space-y-3">
+            {/* 3. Family Household Profile & Breath Budget Ledger */}
+            <div className="space-y-4">
+              <ProfileBadge
+                profile={profile}
+                onEditClick={() => setIsProfileModalOpen(true)}
+              />
+
               <BreathBudgetTracker
                 currentAqi={airData.current.aqi}
                 pm25={airData.current.pm25}
