@@ -377,7 +377,10 @@ export async function fetchAirQuality(
   // Fetch air quality and weather telemetry in parallel with error resilience
   const [aqRes, weatherRes] = await Promise.all([
     fetch(airQualityUrl).catch(() => null),
-    fetch(weatherUrl).catch(() => null),
+    fetch(weatherUrl).catch((err) => {
+      console.warn('Secondary weather telemetry network error:', err);
+      return null;
+    }),
   ]);
 
   if (!aqRes || !aqRes.ok) {
@@ -397,9 +400,13 @@ export async function fetchAirQuality(
   if (weatherRes && weatherRes.ok) {
     try {
       weatherJson = await weatherRes.json();
-    } catch {
-      // Graceful degradation if weather JSON parsing fails
+    } catch (parseErr) {
+      console.warn('Failed to parse secondary weather telemetry JSON; proceeding with missing weather metrics:', parseErr);
     }
+  } else if (weatherRes && !weatherRes.ok) {
+    console.warn(`Secondary weather telemetry request failed with status ${weatherRes.status}; proceeding with missing weather metrics.`);
+  } else {
+    console.warn('Secondary weather telemetry unavailable; proceeding with missing weather metrics.');
   }
 
   const currentTemp = weatherJson.hourly?.temperature_2m?.[0];
