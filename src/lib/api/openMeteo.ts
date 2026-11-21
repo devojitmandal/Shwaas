@@ -72,11 +72,12 @@ export interface ProcessedAirQuality {
   worstWindow: OutdoorWindow;
 }
 
-// In-memory cache with 15-minute TTL
+// In-memory LRU cache with 15-minute TTL and bounded capacity
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
 }
+export const MAX_CACHE_ENTRIES = 200;
 const cache = new Map<string, CacheEntry<unknown>>();
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
@@ -87,11 +88,30 @@ function getCached<T>(key: string): T | null {
     cache.delete(key);
     return null;
   }
+  // Re-insert to refresh LRU recency
+  cache.delete(key);
+  cache.set(key, entry);
   return entry.data;
 }
 
 function setCache<T>(key: string, data: T): void {
+  if (cache.has(key)) {
+    cache.delete(key);
+  } else if (cache.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey !== undefined) {
+      cache.delete(oldestKey);
+    }
+  }
   cache.set(key, { data, timestamp: Date.now() });
+}
+
+export function clearOpenMeteoCache(): void {
+  cache.clear();
+}
+
+export function getOpenMeteoCacheSize(): number {
+  return cache.size;
 }
 
 /**

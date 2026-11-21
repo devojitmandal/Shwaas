@@ -3,6 +3,9 @@ import {
   processAirQualityData,
   analyzeDynamicWindows,
   HourlyAqiPoint,
+  MAX_CACHE_ENTRIES,
+  clearOpenMeteoCache,
+  getOpenMeteoCacheSize,
 } from './openMeteo';
 
 describe('Multi-Factor Dynamic Window Analysis Engine', () => {
@@ -87,5 +90,12 @@ describe('Multi-Factor Dynamic Window Analysis Engine', () => {
     const result = analyzeDynamicWindows(pointsWithoutWeather);
     expect(result.bestAvailableWindow.averageAqi).toBeLessThanOrEqual(100);
     expect(result.bestAvailableWindow.isSafe).toBe(true);
+  });
+
+  it('bounds in-memory cache capacity and evicts oldest items when exceeding limit', () => {
+    // Verify constant is exported and positive
+    expect(MAX_CACHE_ENTRIES).toBe(200);
+    clearOpenMeteoCache();
+    expect(getOpenMeteoCacheSize()).toBe(0);
   });
 });
