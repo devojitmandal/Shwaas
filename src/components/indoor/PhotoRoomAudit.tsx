@@ -3,51 +3,10 @@
 import { useState, useRef } from 'react';
 import { Camera, Upload, AlertCircle, CheckCircle2, Sparkles, Loader2, Wrench, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { RoomAuditResult } from '@/lib/audit/roomAuditSchema';
+import { compressImage } from '@/lib/audit/imageCompressor';
 
 interface PhotoRoomAuditProps {
   outdoorPm25: number;
-}
-
-function compressImage(file: File): Promise<{ dataUrl: string; mimeType: 'image/jpeg' }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Failed to read image file.'));
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onerror = () => reject(new Error('Failed to decode image.'));
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-        const maxSide = 1280;
-
-        if (width > maxSide || height > maxSide) {
-          if (width > height) {
-            height = Math.round((height * maxSide) / width);
-            width = maxSide;
-          } else {
-            width = Math.round((width * maxSide) / height);
-            height = maxSide;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Failed to get canvas context.'));
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-        // Drawing to canvas and re-encoding strips EXIF, GPS, and metadata
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        resolve({ dataUrl, mimeType: 'image/jpeg' });
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
 }
 
 export default function PhotoRoomAudit({ outdoorPm25 }: PhotoRoomAuditProps) {
