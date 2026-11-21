@@ -86,13 +86,16 @@ export default function TimeWindowsCard({
               {bestWindow.advisory}
             </p>
 
-            {/* Scientific Reasoning Badges */}
+            {/* Scientific Reasoning Badges (Collapsible Why? expander) */}
             {bestWindow.reasoning && bestWindow.reasoning.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Why this window?
-                </span>
-                <ul className="space-y-1 text-xs text-slate-600">
+              <details className="mt-3 pt-2 border-t border-slate-100 group">
+                <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-wider text-teal-800 hover:text-teal-950 flex items-center gap-1 select-none focus-visible:outline-hidden">
+                  <span>Why this window?</span>
+                  <span className="text-[10px] font-normal lowercase text-slate-500 group-open:hidden">
+                    (expand)
+                  </span>
+                </summary>
+                <ul className="mt-2 space-y-1 text-xs text-slate-600">
                   {bestWindow.reasoning.map((r, i) => (
                     <li key={i} className="flex items-start gap-1.5">
                       <span className="text-teal-800">•</span>
@@ -100,7 +103,7 @@ export default function TimeWindowsCard({
                     </li>
                   ))}
                 </ul>
-              </div>
+              </details>
             )}
           </div>
 

@@ -85,7 +85,7 @@ export default function TodaysPlanView({
               <span id="todays-plan-title">Personalized Defense Protocol</span>
               {source && (
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
-                  {source === 'gemini_personalized' ? 'Gemini 3.8 + Deterministic Engine' : 'Deterministic Engine Rules'}
+                  {source === 'gemini_personalized' ? 'Gemini 3.8 + Deterministic Engine' : 'Rule-based plan'}
                 </span>
               )}
             </div>
