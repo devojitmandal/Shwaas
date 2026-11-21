@@ -187,7 +187,7 @@ Telemetry & Profile ──▶ Deterministic Engine ──▶ Structured Gemini P
 ## 📁 Project Structure
 
 ```
-airwise/
+shwaas/
 ├── docs/
 │   ├── ASSUMPTIONS.md         # Scientific formulas, CPCB breakpoints, EPA inhalation rates, mass-balance
 │   ├── SECURITY.md            # Zod validation, rate limiting, CSP, privacy guarantees
@@ -229,7 +229,7 @@ airwise/
 Shwaas maintains 100% passing test coverage across 14 test suites and 48 unit/integration tests:
 
 ```bash
-cd C:\Users\devoj\Hackathon\airwise
+cd shwaas
 npm test
 ```
 
@@ -259,8 +259,8 @@ npm test
 
 ### Installation
 ```bash
-git clone https://github.com/devoj/airwise.git
-cd airwise
+git clone https://github.com/devojitmandal/Shwaas.git
+cd Shwaas
 npm install
 ```
 

@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
     return buildFallbackResponse();
   }
 
-  // 5. Call Gemini 2.5 Flash Vision Server-Side
+  // 5. Call Gemini Vision Server-Side
   try {
     const ai = new GoogleGenAI({ apiKey });
 

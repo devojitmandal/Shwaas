@@ -70,7 +70,7 @@ Configured in `next.config.ts` for all route responses:
 ## 5. Client-Side Privacy Guarantee
 
 - **No User Database or Accounts:** Shwaas does not operate a user database or store session cookies.
-- **Local Storage Isolation:** Household compositions, children/elderly member numbers, and commute types are saved exclusively inside the user's browser `localStorage` (`airwise_household_profile_v1`).
+- **Local Storage Isolation:** Household compositions, children/elderly member numbers, and commute types are saved exclusively inside the user's browser `localStorage` (`shwaas_household_profile_v1`, with `airwise_household_profile_v1` maintained as a legacy key migrated to `shwaas_household_profile_v1`).
 - **No Personally Identifiable Health Records:** Shwaas never asks for names, addresses, phone numbers, or clinical diagnoses. Calculations run purely on generic lifestyle and environmental variables.
 
 ---
@@ -82,3 +82,18 @@ To ensure absolute scientific and computational fidelity:
 - **Strict One-Way Information Flow:**
   $$\text{Open-Meteo Telemetry} \xrightarrow{} \text{Deterministic CPCB NAQI \& Exposure Engine} \xrightarrow{} \text{Verified Numbers Passed to Prompt} \xrightarrow{} \text{Gemini Synthesizes Text Plan} \xrightarrow{} \text{Zod Schema Validation}$$
 - **Fail-Safe Deterministic Fallback:** If the Gemini API is unreachable, times out, rate-limits, or emits an unparsable schema, the application seamlessly activates `generateFallbackPlan()` to ensure uninterrupted, scientifically valid guidance without degradation.
+
+---
+
+## 7. Known Limitations
+
+While Shwaas is architected for resilience and scientific integrity, several environmental and infrastructural constraints should be noted:
+
+1. **Serverless In-Memory Rate Limiting:**
+   The sliding-window rate limiter runs in Node.js process memory. In serverless deployments (such as Vercel), each ephemeral lambda instance maintains its own memory store. This serves as an effective soft limit to deter rapid client scraping; a production enterprise deployment would back this with a centralized low-latency store such as Upstash Redis or Vercel KV.
+
+2. **Regional Gridded Telemetry vs. Hyperlocal Street Sensors:**
+   Atmospheric PM2.5 and PM10 telemetry is derived from Open-Meteo's European Centre for Medium-Range Weather Forecasts (ECMWF / Copernicus CAMS / SILAM ensemble) running on ~10 km gridded reanalysis models. While highly accurate for synoptic and boundary-layer trends, it does not replace immediate roadside micro-sensors measuring localized vehicular exhaust or hyper-local biomass combustion plumes.
+
+3. **Hourly Real-Time Approximation vs. Regulatory 24-Hour NAQI:**
+   Under the official Central Pollution Control Board (CPCB) regulatory standard, India's National AQI is formally computed on 24-hour truncated average concentrations. Shwaas calculates the sub-index on hourly values to provide actionable, real-time decision-support during rapid morning inversion shifts, serving as a responsive lifestyle guidance tool rather than a regulatory compliance monitor.

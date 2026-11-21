@@ -1,6 +1,6 @@
-# AirWise: Scientific Assumptions & Methodology Reference
+# Shwaas: Scientific Assumptions & Methodology Reference
 
-This document outlines the scientific foundations, mathematical formulations, empirical parameters, and reference literature underlying the AirWise calculation engines:
+This document outlines the scientific foundations, mathematical formulations, empirical parameters, and reference literature underlying the Shwaas calculation engines:
 - CPCB National Air Quality Index (NAQI) Engine (`src/lib/aqi/naqi.ts`)
 - Deterministic Inhaled Mass Exposure Engine (`src/lib/exposure/engine.ts`)
 - Single-Zone Indoor Mass-Balance Engine (`src/lib/exposure/engine.ts`, `src/components/indoor/IndoorAirModel.tsx`)
@@ -8,13 +8,13 @@ This document outlines the scientific foundations, mathematical formulations, em
 - Dynamic Meteorological Window Recommender (`src/lib/api/openMeteo.ts`)
 
 > [!IMPORTANT]
-> **Decision Support Notice:** AirWise calculates exposure doses and reductions based on peer-reviewed microenvironmental models to empower family and community resilience against winter smog. Outputs are scientific estimates for lifestyle optimization, not diagnostic or individual clinical medical advice.
+> **Decision Support Notice:** Shwaas calculates exposure doses and reductions based on peer-reviewed microenvironmental models to empower family and community resilience against winter smog. Outputs are scientific estimates for lifestyle optimization, not diagnostic or individual clinical medical advice.
 
 ---
 
 ## 1. National Air Quality Index (NAQI) - India Standard
 
-AirWise implements the **Central Pollution Control Board (CPCB)** methodology formulated by the Ministry of Environment, Forest and Climate Change (MoEFCC), Government of India (*CPCB 2014 Final Report on National Air Quality Index*).
+Shwaas implements the **Central Pollution Control Board (CPCB)** methodology formulated by the Ministry of Environment, Forest and Climate Change (MoEFCC), Government of India (*CPCB 2014 Final Report on National Air Quality Index*).
 
 > [!IMPORTANT]
 > **24-Hour Average vs. Hourly Approximation Note:** Under the official CPCB regulatory framework, India's National AQI is formally defined on **24-hour truncated average concentrations**. In Shwaas, hourly pollutant concentrations fetched from atmospheric chemistry models are evaluated directly through the official CPCB breakpoint interpolation tables as **real-time hourly approximations**. This approximation provides actionable, real-time decision support for outdoor errand timing and ventilation management during rapidly shifting winter inversion episodes.
@@ -49,7 +49,7 @@ $$\text{NAQI} = \min\left(500, \max(I_{\text{PM2.5}}, I_{\text{PM10}})\right)$$
 
 ## 2. Inhaled Particulate Mass Intake Model
 
-Rather than relying purely on unitless indices, AirWise models the actual estimated **inhaled particulate mass intake** in micrograms ($\mu\text{g}$):
+Rather than relying purely on unitless indices, Shwaas models the actual estimated **inhaled particulate mass intake** in micrograms ($\mu\text{g}$):
 
 $$\text{Inhaled Mass } (\mu\text{g}) = C_p \times Q_{\text{vent}} \times T$$
 
@@ -105,7 +105,7 @@ Where:
   - Without Purifier: **0** $\text{m}^3/\text{h}$.
 
 ### 3.1 Future Mitigation vs. "Refund" Distinction
-AirWise explicitly rejects treating air purifiers as generating a retroactive "refund" for pollution already inhaled into the respiratory tract. Once particles deposit in pulmonary alveoli, air cleaners cannot undo that biological dose. Instead, running a HEPA air purifier reduces the **future rate of indoor exposure accumulation**.
+Shwaas explicitly rejects treating air purifiers as generating a retroactive "refund" for pollution already inhaled into the respiratory tract. Once particles deposit in pulmonary alveoli, air cleaners cannot undo that biological dose. Instead, running a HEPA air purifier reduces the **future rate of indoor exposure accumulation**.
 
 ---
 
@@ -120,7 +120,7 @@ The World Health Organization (WHO) updated Global Air Quality Guidelines (2021)
 > The WHO $15\,\mu\text{g/m}^3$ standard is an **epidemiological population-level health risk guideline**, NOT an individual clinical threshold or personal daily quota. Long-term studies show non-linear concentration-response relationships with health effects occurring even at very low levels.
 
 ### 4.2 The 100-Point Breath Budget as a Relative Index
-To make particulate exposure actionable for families without clinical misrepresentation, AirWise defines the 100-Point Breath Budget as a **relative exposure-management planning index**:
+To make particulate exposure actionable for families without clinical misrepresentation, Shwaas defines the 100-Point Breath Budget as a **relative exposure-management planning index**:
 - **Baseline Reference:** A sedentary adult spending 24 hours at the WHO 24-hour guideline ($15\,\mu\text{g/m}^3 \times 0.60\,\text{m}^3/\text{h} \times 24\,\text{h} = 216\,\mu\text{g}$) represents **100 relative index points** (1 point $\approx 2.16\,\mu\text{g}$ PM2.5).
 - **Practical Utility:** Enables users to visualize activity trade-offs (e.g., rescheduling a 40-minute walk from 8:00 AM smog to 1:30 PM atmospheric dispersion avoids ~45 index points).
 - **Communication:** Clearly labeled in the UI as a relative lifestyle management tool, never as a medical safety boundary.
@@ -129,7 +129,7 @@ To make particulate exposure actionable for families without clinical misreprese
 
 ## 5. Dynamic Meteorological Outdoor Window Analysis
 
-Rather than assuming afternoon hours are universally cleaner, AirWise analyzes multi-parameter hourly meteorological forecasts from Open-Meteo:
+Rather than assuming afternoon hours are universally cleaner, Shwaas analyzes multi-parameter hourly meteorological forecasts from Open-Meteo:
 
 ### 5.1 Meteorological Parameters Evaluated
 1. **Hourly PM2.5 Forecast:** Tracking peak nocturnal thermal inversions vs. afternoon boundary-layer expansion.
@@ -138,7 +138,7 @@ Rather than assuming afternoon hours are universally cleaner, AirWise analyzes m
 4. **Solar Radiation & Thermal Dispersion:** Planetary boundary layer (PBL) height expands significantly during daylight insolation (12:00 PM – 3:30 PM), diluting ground-level particulate plumes.
 
 ### 5.2 Severe Smog Lockout Protocol (NAQI > 300 for All 24 Hours)
-AirWise implements a strict single-threshold criterion for Severe Smog Lockouts:
+Shwaas implements a strict single-threshold criterion for Severe Smog Lockouts:
 - **Single Quantitative Trigger:** When every single hour across the 24-hour diurnal forecast has an NAQI exceeding **300 (Very Poor / Severe)** (`hourly.every(h => h.aqi > 300)`).
 - **Behavior:**
   - Flags `noSafeWindowAvailable: true`.
@@ -152,7 +152,7 @@ AirWise implements a strict single-threshold criterion for Severe Smog Lockouts:
 
 ## 6. Uncertainty & Data Provenance
 
-AirWise maintains transparent distinction across data layers:
+Shwaas maintains transparent distinction across data layers:
 1. **Atmospheric Chemistry Models (Open-Meteo):** Seamless global coverage utilizing numerical weather prediction coupled with aerosol chemistry models (Copernicus CAMS, SILAM ensemble). Provides forecast trends and dispersion modeling.
 2. **Physical Ground Stations (CPCB/DPCC):** Continuous Ambient Air Quality Monitoring Stations (CAAQMS) providing localized regulatory point measurements.
 3. **Deterministic Mass Models:** Transparent mathematical physics equations linking ambient concentrations to microenvironments and respiratory volumes.
