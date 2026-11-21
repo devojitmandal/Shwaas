@@ -81,8 +81,8 @@ const parseHashView = (): AppView => {
 };
 
 export default function Home() {
-  // Navigation state synced to URL hash
-  const [activeView, setActiveView] = useState<AppView>(() => parseHashView());
+  // Navigation state synced to URL hash (starts at 'today' to avoid SSR hydration mismatch)
+  const [activeView, setActiveView] = useState<AppView>('today');
 
   // Localization state (en | hi | kn)
   const [language, setLanguage] = useState<SupportedLanguage>('en');
@@ -108,13 +108,23 @@ export default function Home() {
   const [planSource, setPlanSource] = useState<PlanSource>('deterministic_engine_fallback');
   const [isPlanLoading, setIsPlanLoading] = useState(false);
 
-  // Listen to hashchange
+  // Sync hash on client mount and listen to hashchange
   useEffect(() => {
+    const timer = setTimeout(() => {
+      const initialView = parseHashView();
+      if (initialView !== 'today') {
+        setActiveView(initialView);
+      }
+    }, 0);
+
     const handleHashChange = () => {
       setActiveView(parseHashView());
     };
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
   }, []);
 
   const handleNavigate = (view: AppView) => {

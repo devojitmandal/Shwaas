@@ -53,19 +53,23 @@ export default function AppShell({
   children,
 }: AppShellProps) {
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
-  const [textScale, setTextScale] = useState<TextScale>(() => {
-    if (typeof window !== 'undefined') {
+  const [textScale, setTextScale] = useState<TextScale>('100');
+
+  // Load saved text scale from localStorage on client mount (avoids SSR hydration mismatch)
+  useEffect(() => {
+    const timer = setTimeout(() => {
       try {
         const saved = localStorage.getItem('shwaas_text_scale') as TextScale | null;
         if (saved && ['100', '112', '125'].includes(saved)) {
-          return saved;
+          setTextScale(saved);
         }
       } catch {
         // localStorage may be unavailable
       }
-    }
-    return '100';
-  });
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Sync data-text-scale attribute on html element
   useEffect(() => {
