@@ -31,74 +31,74 @@ export default function TimeWindowsCard({
   const worstCategoryMeta = getNaqiCategory(worstWindow.averageAqi);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       {/* Critical Alert Banner if no safe window exists */}
       {noSafeWindowAvailable && (
         <div
           role="alert"
-          className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-950 flex items-start gap-3"
+          className="p-6 rounded-2xl bg-rose-50 border border-rose-300 text-rose-950 flex items-start gap-4 shadow-2xs"
         >
           <AlertTriangle className="w-5 h-5 text-rose-700 shrink-0 mt-0.5" aria-hidden="true" />
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-rose-900">
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-rose-900">
               {alertHeadline || 'Critical Smog Lockout: NAQI > 300 for All 24 Hours'}
-            </h4>
-            <p className="text-xs text-rose-800 mt-0.5 leading-relaxed">
-              Every single hour today has projected NAQI &gt; 300 (Very Poor / Severe). No safe outdoor window exists today. The window recommended below is merely the <em>least-polluted interval</em>—not a safe threshold. Cancel sports and postpone non-urgent travel.
+            </h3>
+            <p className="text-base text-rose-950 leading-relaxed max-w-[65ch]">
+              Every single hour today has projected NAQI &gt; 300 (Very Poor / Severe). No safe outdoor window exists today. The window recommended below is merely the least-polluted interval—not a safe threshold. Cancel sports and postpone non-urgent travel.
             </p>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
         {/* Best Outdoor Time Window */}
         <article
           aria-labelledby="best-window-title"
-          className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between"
+          className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs flex flex-col justify-between space-y-5"
         >
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-teal-800">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <span className="flex items-center gap-2 text-[13px] tracking-[0.04em] font-semibold uppercase text-teal-800">
                 <Sun className="w-4 h-4 text-teal-800" aria-hidden="true" />
                 <span id="best-window-title">
-                  {noSafeWindowAvailable ? 'Least-Polluted Available Window' : 'Cleanest Activity Window'}
+                  {noSafeWindowAvailable ? 'Least-polluted available window' : 'Cleanest activity window'}
                 </span>
               </span>
               <div
-                className="px-2.5 py-0.5 rounded-full text-xs font-semibold shadow-2xs"
+                className="px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-2xs min-h-[32px] flex items-center"
                 style={{
                   backgroundColor: bestCategoryMeta.chipBg,
                   color: bestCategoryMeta.textColor,
                 }}
               >
-                Avg AQI {bestWindow.averageAqi} ({bestWindow.category})
+                Avg AQI <span className="font-mono font-bold ml-1">{bestWindow.averageAqi}</span>&nbsp;({bestWindow.category})
               </div>
             </div>
 
-            <div className="mt-3 flex items-baseline gap-2">
-              <Clock className="w-4 h-4 text-slate-400" aria-hidden="true" />
-              <h4 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight">
+            <div className="flex items-baseline gap-2 pt-1">
+              <Clock className="w-5 h-5 text-slate-500" aria-hidden="true" />
+              <h4 className="text-2xl font-bold text-slate-900 tracking-tight">
                 {formatTimeRange(bestWindow.startTime, bestWindow.endTime)}
               </h4>
             </div>
 
-            <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+            <p className="text-base leading-relaxed text-slate-700 max-w-[65ch]">
               {bestWindow.advisory}
             </p>
 
             {/* Scientific Reasoning Badges (Collapsible Why? expander) */}
             {bestWindow.reasoning && bestWindow.reasoning.length > 0 && (
-              <details className="mt-3 pt-2 border-t border-slate-100 group">
-                <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-wider text-teal-800 hover:text-teal-950 flex items-center gap-1 select-none focus-visible:outline-hidden">
+              <details className="mt-3 pt-3 border-t border-slate-200 group">
+                <summary className="cursor-pointer text-sm font-bold text-teal-800 hover:text-teal-950 flex items-center gap-1.5 select-none focus-visible:outline-hidden">
                   <span>Why this window?</span>
-                  <span className="text-[10px] font-normal lowercase text-slate-500 group-open:hidden">
-                    (expand)
+                  <span className="text-xs font-normal text-slate-600 group-open:hidden">
+                    (tap to expand)
                   </span>
                 </summary>
-                <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                <ul className="mt-2.5 space-y-1.5 text-sm text-slate-700 max-w-[65ch]">
                   {bestWindow.reasoning.map((r, i) => (
-                    <li key={i} className="flex items-start gap-1.5">
-                      <span className="text-teal-800">•</span>
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-teal-800 font-bold">•</span>
                       <span>{r}</span>
                     </li>
                   ))}
@@ -107,56 +107,59 @@ export default function TimeWindowsCard({
             )}
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-            <span>Forecast Model Telemetry</span>
-            <span>{bestWindow.isSafe ? 'Low Inversion Risk' : 'N95 Protection Mandatory'}</span>
+          <div className="pt-3.5 border-t border-slate-200 flex items-center justify-between text-sm text-slate-600">
+            <span>Forecast model telemetry</span>
+            <span className="font-medium text-slate-700">{bestWindow.isSafe ? 'Low inversion risk' : 'N95 protection mandatory'}</span>
           </div>
         </article>
 
         {/* Worst Outdoor Time Window */}
         <article
           aria-labelledby="worst-window-title"
-          className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between"
+          className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs flex flex-col justify-between space-y-5"
         >
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-rose-800">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <span className="flex items-center gap-2 text-[13px] tracking-[0.04em] font-semibold uppercase text-rose-800">
                 <Moon className="w-4 h-4 text-rose-800" aria-hidden="true" />
-                <span id="worst-window-title">Peak Inversion Smog Trap</span>
+                <span id="worst-window-title">Peak inversion smog trap</span>
               </span>
               <div
-                className="px-2.5 py-0.5 rounded-full text-xs font-semibold shadow-2xs"
+                className="px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-2xs min-h-[32px] flex items-center"
                 style={{
                   backgroundColor: worstCategoryMeta.chipBg,
                   color: worstCategoryMeta.textColor,
                 }}
               >
-                Avg AQI {worstWindow.averageAqi} ({worstWindow.category})
+                Avg AQI <span className="font-mono font-bold ml-1">{worstWindow.averageAqi}</span>&nbsp;({worstWindow.category})
               </div>
             </div>
 
-            <div className="mt-3 flex items-baseline gap-2">
-              <Clock className="w-4 h-4 text-slate-400" aria-hidden="true" />
-              <h4 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight">
+            <div className="flex items-baseline gap-2 pt-1">
+              <Clock className="w-5 h-5 text-slate-500" aria-hidden="true" />
+              <h4 className="text-2xl font-bold text-slate-900 tracking-tight">
                 {formatTimeRange(worstWindow.startTime, worstWindow.endTime)}
               </h4>
             </div>
 
-            <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+            <p className="text-base leading-relaxed text-slate-700 max-w-[65ch]">
               {worstWindow.advisory}
             </p>
 
-            <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                Atmospheric Dynamics:
-              </span>
-              <p className="text-xs text-slate-600 leading-relaxed">
+            <details className="mt-3 pt-3 border-t border-slate-200 group">
+              <summary className="cursor-pointer text-sm font-bold text-rose-800 hover:text-rose-950 flex items-center gap-1.5 select-none focus-visible:outline-hidden">
+                <span>Atmospheric dynamics &amp; risks</span>
+                <span className="text-xs font-normal text-slate-600 group-open:hidden">
+                  (tap to expand)
+                </span>
+              </summary>
+              <p className="mt-2.5 text-sm text-slate-700 leading-relaxed max-w-[65ch]">
                 Cool surface air and weak boundary-layer winds prevent vertical dispersion. Vehicle emissions and biomass smoke concentrate directly in human breathing zones.
               </p>
-            </div>
+            </details>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-rose-800 font-semibold">
+          <div className="pt-3.5 border-t border-slate-200 flex items-center justify-between text-sm text-rose-800 font-semibold">
             <span>Action: Keep windows sealed</span>
             <span>Halt outdoor exercise</span>
           </div>

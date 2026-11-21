@@ -47,14 +47,14 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-800">
+          <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.04em] text-teal-800">
             <Sliders className="w-4 h-4 text-teal-800" aria-hidden="true" />
             <span id="what-if-heading">Real-Time What-If Sandbox</span>
           </div>
-          <h3 className="mt-1 text-2xl font-serif font-bold text-slate-900 tracking-tight">
+          <h3 className="mt-2 text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Simulate Interventions & Measure Gain
           </h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-2 text-sm sm:text-base text-slate-600 max-w-[65ch]">
             Toggle lifestyle changes below to see immediate deterministic re-computations of your daily exposure.
           </p>
         </div>
@@ -63,7 +63,7 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
         <div
           role="status"
           aria-live="polite"
-          className={`px-4 py-2.5 rounded-xl border text-xs font-semibold flex items-center gap-2 shrink-0 ${
+          className={`min-h-[44px] px-4 py-2.5 rounded-xl border text-sm font-semibold flex items-center gap-2 shrink-0 ${
             isDoseReduced
               ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
               : isDoseIncreased
@@ -76,22 +76,22 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
             {isDoseReduced
               ? `–${result.doseReductionPercent}% Inhaled Dose (${result.doseDifference} µg·h/m³ saved)`
               : isDoseIncreased
-              ? `+${Math.abs(result.doseReductionPercent)}% Inhaled Dose (Risk Increase)`
-              : 'Baseline (No Change)'}
+              ? `+${Math.abs(result.doseReductionPercent)}% Inhaled Dose (Risk increase)`
+              : 'Baseline (No change)'}
           </span>
         </div>
       </div>
 
       {/* Preset Scenario Buttons for Fast One-Click Simulation */}
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <span className="text-xs font-semibold text-slate-500 mr-1">Quick Scenarios:</span>
+      <div className="flex flex-wrap items-center gap-2.5 mb-6">
+        <span className="text-xs font-semibold text-slate-600 mr-1 uppercase tracking-[0.04em]">Quick Scenarios:</span>
         <button
           type="button"
           onClick={() => {
             setHypoCommute('metro_bus_transit');
             setHypoMask('n95_kn95');
           }}
-          className="px-3 py-1.5 rounded-full text-xs bg-slate-100 hover:bg-teal-50 hover:text-teal-900 font-medium text-slate-700 transition-colors border border-slate-200"
+          className="min-h-[44px] px-4 py-2 rounded-xl text-sm bg-slate-100 hover:bg-teal-50 hover:text-teal-900 font-medium text-slate-700 transition-colors border border-slate-200 focus-visible:ring-2 focus-visible:ring-teal-700"
         >
           Metro + N95 Respirator
         </button>
@@ -101,7 +101,7 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
             setHypoPurifier(true);
             setHypoVentilation('sealed_windows');
           }}
-          className="px-3 py-1.5 rounded-full text-xs bg-slate-100 hover:bg-teal-50 hover:text-teal-900 font-medium text-slate-700 transition-colors border border-slate-200"
+          className="min-h-[44px] px-4 py-2 rounded-xl text-sm bg-slate-100 hover:bg-teal-50 hover:text-teal-900 font-medium text-slate-700 transition-colors border border-slate-200 focus-visible:ring-2 focus-visible:ring-teal-700"
         >
           Deploy Purifier + Seal Windows
         </button>
@@ -110,7 +110,7 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
           onClick={() => {
             setHypoOutdoorHours(Math.max(0.5, currentProfile.timeOutdoorsHours * 0.5));
           }}
-          className="px-3 py-1.5 rounded-full text-xs bg-slate-100 hover:bg-teal-50 hover:text-teal-900 font-medium text-slate-700 transition-colors border border-slate-200"
+          className="min-h-[44px] px-4 py-2 rounded-xl text-sm bg-slate-100 hover:bg-teal-50 hover:text-teal-900 font-medium text-slate-700 transition-colors border border-slate-200 focus-visible:ring-2 focus-visible:ring-teal-700"
         >
           Cut Outdoor Time by 50%
         </button>
@@ -123,23 +123,23 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
             setHypoVentilation(currentProfile.ventilationStrategy);
             setHypoOutdoorHours(currentProfile.timeOutdoorsHours);
           }}
-          className="px-3 py-1.5 rounded-full text-xs text-slate-500 hover:text-slate-800 transition-colors ml-auto"
+          className="min-h-[44px] px-3.5 py-2 rounded-xl text-sm text-slate-600 hover:text-slate-900 transition-colors ml-auto focus-visible:ring-2 focus-visible:ring-teal-700"
         >
           Reset to My Profile
         </button>
       </div>
 
       {/* Interactive Controls Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-200">
         <div>
-          <label htmlFor="sim-commute" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-600 mb-1">
+          <label htmlFor="sim-commute" className="block text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 mb-1.5">
             Commute Mode
           </label>
           <select
             id="sim-commute"
             value={hypoCommute}
             onChange={(e) => setHypoCommute(e.target.value as CommuteType)}
-            className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md text-xs bg-white text-slate-900"
+            className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
           >
             <option value="two_wheeler">Two-Wheeler</option>
             <option value="walk">Walking</option>
@@ -151,14 +151,14 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
         </div>
 
         <div>
-          <label htmlFor="sim-mask" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-600 mb-1">
+          <label htmlFor="sim-mask" className="block text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 mb-1.5">
             Outdoor Mask
           </label>
           <select
             id="sim-mask"
             value={hypoMask}
             onChange={(e) => setHypoMask(e.target.value as MaskType)}
-            className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md text-xs bg-white text-slate-900"
+            className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
           >
             <option value="none">No Mask</option>
             <option value="cloth_surgical">Cloth / Surgical Mask</option>
@@ -167,14 +167,14 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
         </div>
 
         <div>
-          <label htmlFor="sim-purifier" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-600 mb-1">
-            Indoor HEPA / Box-Fan
+          <label htmlFor="sim-purifier" className="block text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 mb-1.5">
+            Indoor Purifier / DIY Filter
           </label>
           <select
             id="sim-purifier"
             value={hypoPurifier ? 'yes' : 'no'}
             onChange={(e) => setHypoPurifier(e.target.value === 'yes')}
-            className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md text-xs bg-white text-slate-900"
+            className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
           >
             <option value="yes">Running Purifier / DIY Filter</option>
             <option value="no">No Mechanical Purifier</option>
@@ -182,14 +182,14 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
         </div>
 
         <div>
-          <label htmlFor="sim-ventilation" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-600 mb-1">
+          <label htmlFor="sim-ventilation" className="block text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 mb-1.5">
             Window Sealing
           </label>
           <select
             id="sim-ventilation"
             value={hypoVentilation}
             onChange={(e) => setHypoVentilation(e.target.value as VentilationStrategy)}
-            className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md text-xs bg-white text-slate-900"
+            className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
           >
             <option value="sealed_windows">Sealed Windows</option>
             <option value="timed_afternoon">Timed Afternoon Flush</option>
@@ -199,15 +199,15 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
       </div>
 
       {/* Comparison Verdict Strip */}
-      <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+      <div className="mt-4 pt-4 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
         <div className="flex items-center gap-2 text-slate-700">
-          <span className="font-semibold text-slate-900">Engine Verdict:</span>
+          <span className="font-semibold text-slate-900">Engine verdict:</span>
           <span>{result.verdict}</span>
         </div>
-        <div className="flex items-center gap-3 font-mono text-[11px] text-slate-500">
-          <span>Current: {result.originalDose} µg·h/m³</span>
-          <ArrowRight className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
-          <span className="font-semibold text-slate-900">Simulated: {result.newDose} µg·h/m³</span>
+        <div className="flex items-center gap-3 text-xs text-slate-600">
+          <span>Current: <strong className="font-mono text-slate-900">{result.originalDose} µg·h/m³</strong></span>
+          <ArrowRight className="w-4 h-4 text-slate-400" aria-hidden="true" />
+          <span>Simulated: <strong className="font-mono text-slate-900">{result.newDose} µg·h/m³</strong></span>
         </div>
       </div>
     </section>

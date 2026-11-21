@@ -215,14 +215,14 @@ export default function BreathBudgetTracker({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-800">
+          <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.04em] text-teal-800">
             <BatteryCharging className="w-4 h-4 text-teal-800" aria-hidden="true" />
             <span id="breath-budget-heading">Relative Exposure-Management Score</span>
           </div>
-          <h3 className="mt-1 text-2xl font-serif font-bold text-slate-900 tracking-tight">
+          <h3 className="mt-2 text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Daily Breath Budget Ledger
           </h3>
-          <p className="mt-1 text-xs text-slate-500 max-w-2xl leading-relaxed">
+          <p className="mt-2 text-sm sm:text-base text-slate-600 max-w-[65ch] leading-relaxed">
             A relative personal exposure index calibrated against the WHO 24-hr guideline benchmark (100 relative points = reference intake of 24 hours at 15 µg/m³).
           </p>
         </div>
@@ -230,100 +230,100 @@ export default function BreathBudgetTracker({
         {/* Status Badge */}
         <div
           role="status"
-          className="px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs shrink-0"
+          className="min-h-[44px] px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-2xs shrink-0"
           style={{
             backgroundColor: budget.statusColor,
             color: budget.statusTextColor,
           }}
         >
           <span>{budget.budgetStatus}</span>
-          <span className="opacity-80">({budget.percentageOfReferenceIntake}% of Reference)</span>
+          <span className="opacity-90">({budget.percentageOfReferenceIntake}% of reference)</span>
         </div>
       </div>
 
       {/* Scientific Clarification Box */}
-      <div className="p-3.5 rounded-xl bg-teal-50/70 border border-teal-100 flex items-start gap-2.5 text-xs text-teal-950">
-        <Info className="w-4 h-4 text-teal-800 shrink-0 mt-0.5" aria-hidden="true" />
-        <p className="leading-relaxed">
+      <div className="p-4 rounded-xl bg-teal-50/70 border border-teal-100 flex items-start gap-3 text-sm text-teal-950">
+        <Info className="w-5 h-5 text-teal-800 shrink-0 mt-0.5" aria-hidden="true" />
+        <p className="leading-relaxed max-w-[65ch]">
           <strong>Decision-Support Notice:</strong> The 100-point Breath Budget is a comparative lifestyle-management score, not a medical safety threshold. Fine particulate matter (PM2.5) has no established safe lower limit. Use this ledger to schedule outdoor routines during cleaner forecast windows and protect indoor breathing air.
         </p>
       </div>
 
       {/* Interactive What-If Mitigation Controls */}
-      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/90 space-y-3">
+      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.04em] text-slate-800 flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-teal-800" />
             Live What-If Mitigation Toggles (Updates All Members)
           </span>
-          <span className="text-[11px] text-slate-500">
+          <span className="text-xs text-slate-600">
             Click to simulate instant exposure reductions across your family
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2.5">
           <button
             type="button"
             onClick={handleToggleWhatIfMask}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all ${
+            className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium border flex items-center gap-2 transition-all focus-visible:ring-2 focus-visible:ring-teal-700 ${
               whatIf.maskType === 'n95_kn95'
                 ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
                 : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
             }`}
           >
-            <ShieldCheck className="w-3.5 h-3.5" />
+            <ShieldCheck className="w-4 h-4" />
             <span>{whatIf.maskType === 'n95_kn95' ? '✓ Fitted N95 Active' : '+ Simulate N95 Mask'}</span>
           </button>
 
           <button
             type="button"
             onClick={handleToggleWhatIfPurifier}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all ${
+            className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium border flex items-center gap-2 transition-all focus-visible:ring-2 focus-visible:ring-teal-700 ${
               whatIf.hasPurifier
                 ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
                 : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
             }`}
           >
-            <Wind className="w-3.5 h-3.5" />
+            <Wind className="w-4 h-4" />
             <span>{whatIf.hasPurifier ? '✓ Clean-Room HEPA Active' : '+ Simulate Indoor Purifier'}</span>
           </button>
 
           <button
             type="button"
             onClick={handleToggleWhatIfMetro}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all ${
+            className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium border flex items-center gap-2 transition-all focus-visible:ring-2 focus-visible:ring-teal-700 ${
               whatIf.commuteType === 'metro_bus_transit'
                 ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
                 : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
             }`}
           >
-            <Train className="w-3.5 h-3.5" />
+            <Train className="w-4 h-4" />
             <span>{whatIf.commuteType === 'metro_bus_transit' ? '✓ Metro Transit Active' : '+ Shift to Metro'}</span>
           </button>
 
           <button
             type="button"
             onClick={handleToggleWhatIfShift}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all ${
+            className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium border flex items-center gap-2 transition-all focus-visible:ring-2 focus-visible:ring-teal-700 ${
               whatIf.shiftedWindow
                 ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
                 : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
             }`}
           >
-            <Sun className="w-3.5 h-3.5" />
+            <Sun className="w-4 h-4" />
             <span>{whatIf.shiftedWindow ? '✓ 1 PM Window Active' : '+ Shift Outdoors to 1 PM'}</span>
           </button>
         </div>
       </div>
 
       {/* Per-Person Household Budgets Side-by-Side */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+          <h4 className="text-[13px] font-semibold uppercase tracking-[0.04em] text-slate-800 flex items-center gap-1.5">
             <Users className="w-4 h-4 text-teal-800" />
             Per-Person Household Breath Budgets
           </h4>
-          <span className="text-[11px] text-slate-500">
+          <span className="text-xs text-slate-600">
             Age-appropriate inhalation rates (EPA Exposure Factors Handbook)
           </span>
         </div>
@@ -332,16 +332,16 @@ export default function BreathBudgetTracker({
           {memberBudgets.map((member) => (
             <div
               key={member.memberType}
-              className="p-4 rounded-xl border border-slate-200/90 bg-white shadow-2xs flex flex-col justify-between space-y-3"
+              className="p-5 rounded-2xl border border-slate-200/90 bg-white shadow-2xs flex flex-col justify-between space-y-3"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-xs font-bold text-slate-900 block">{member.label}</span>
-                    <span className="text-[11px] text-slate-500 font-mono">{member.ageCategory}</span>
+                    <span className="text-sm font-bold text-slate-900 block">{member.label}</span>
+                    <span className="text-xs text-slate-600 font-medium">{member.ageCategory}</span>
                   </div>
                   <span
-                    className="px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0"
+                    className="px-2.5 py-1 rounded-full text-xs font-bold shrink-0"
                     style={{
                       backgroundColor: member.statusColor,
                       color: member.statusTextColor,
@@ -351,27 +351,27 @@ export default function BreathBudgetTracker({
                   </span>
                 </div>
 
-                <div className="mt-2 text-[11px] text-slate-600 space-y-0.5">
+                <div className="mt-3 text-xs text-slate-700 space-y-1">
                   <div className="flex justify-between">
-                    <span>Sedentary Inhalation:</span>
+                    <span>Sedentary inhalation:</span>
                     <span className="font-mono font-medium">{member.sedentaryBreathingRate} m³/h</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Active Inhalation:</span>
+                    <span>Active inhalation:</span>
                     <span className="font-mono font-medium">{member.activeBreathingRate} m³/h</span>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
+              <div className="space-y-2 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between text-sm font-semibold text-slate-800">
                   <span>{member.pointsSpent} pts</span>
-                  <span className="text-[11px] font-normal text-slate-500">
+                  <span className="text-xs font-normal text-slate-600">
                     Ref: 100 pts ({member.referenceDailyMassUg} µg)
                   </span>
                 </div>
 
-                <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden flex relative">
+                <div className="h-3.5 w-full rounded-full bg-slate-100 overflow-hidden flex relative">
                   {/* Reference line at 50% (100 pt benchmark out of 200 pt max) */}
                   <div
                     className="absolute top-0 bottom-0 border-r-2 border-slate-400 z-10"
@@ -387,10 +387,10 @@ export default function BreathBudgetTracker({
                   />
                 </div>
 
-                <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5">
+                <div className="flex items-center justify-between text-xs text-slate-600 pt-0.5">
                   <span>~{member.inhaledMassUg} µg PM2.5</span>
                   {member.avoidedMassUg > 0 ? (
-                    <span className="text-emerald-700 font-medium">~{member.avoidedMassUg} µg avoided</span>
+                    <span className="text-emerald-800 font-semibold">~{member.avoidedMassUg} µg avoided</span>
                   ) : (
                     <span>Unmitigated</span>
                   )}
@@ -403,9 +403,9 @@ export default function BreathBudgetTracker({
 
       {/* Progress Bar / Scale */}
       <div>
-        <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2">
-          <span>Inhaled Burden: {budget.netPointsSpent} points (~{budget.totalInhaledMassUg} µg PM2.5)</span>
-          <span className="text-slate-500">Reference Benchmark: 100 points (216 µg)</span>
+        <div className="flex items-center justify-between text-sm font-semibold text-slate-800 mb-2">
+          <span>Inhaled burden: {budget.netPointsSpent} points (~{budget.totalInhaledMassUg} µg PM2.5)</span>
+          <span className="text-slate-600">Reference benchmark: 100 points (216 µg)</span>
         </div>
 
         <div className="h-4 w-full rounded-full bg-slate-100 overflow-hidden flex relative">
@@ -424,26 +424,26 @@ export default function BreathBudgetTracker({
           />
         </div>
 
-        <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+        <div className="mt-2 flex items-center justify-between text-xs text-slate-600">
           <span>0 pts (Clean)</span>
-          <span className="font-semibold text-slate-700">100 pts (WHO 15 µg/m³ Benchmark)</span>
+          <span className="font-semibold text-slate-800">100 pts (WHO 15 µg/m³ Benchmark)</span>
           <span>200+ pts (Severe Burden)</span>
         </div>
       </div>
 
       {/* Activity Spending Ledger */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-800">
+          <h4 className="text-[13px] font-semibold uppercase tracking-[0.04em] text-slate-800">
             Daily Activities & Exposure Breakdown
           </h4>
           <button
             type="button"
             onClick={() => setIsAdding(!isAdding)}
-            className="text-xs font-medium text-teal-800 hover:text-teal-950 flex items-center gap-1 focus-visible:outline-hidden"
+            className="min-h-[44px] px-3.5 py-1.5 text-sm font-medium text-teal-800 hover:text-teal-950 flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-teal-700"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>{isAdding ? 'Close Form' : 'Add Activity'}</span>
+            <Plus className="w-4 h-4" />
+            <span>{isAdding ? 'Close form' : 'Add activity'}</span>
           </button>
         </div>
 
@@ -451,10 +451,10 @@ export default function BreathBudgetTracker({
         {isAdding && (
           <form
             onSubmit={handleAddActivity}
-            className="p-4 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs"
+            className="p-5 rounded-2xl bg-slate-50 border border-slate-200 grid grid-cols-1 sm:grid-cols-5 gap-3.5 text-sm"
           >
             <div className="sm:col-span-2">
-              <label htmlFor="new-act-name" className="block text-[11px] font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-act-name" className="block text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 mb-1.5">
                 Activity Name
               </label>
               <input
@@ -463,12 +463,12 @@ export default function BreathBudgetTracker({
                 placeholder="e.g. Afternoon School Run"
                 value={newActName}
                 onChange={(e) => setNewActName(e.target.value)}
-                className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md bg-white text-slate-900"
+                className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
                 required
               />
             </div>
             <div>
-              <label htmlFor="new-act-duration" className="block text-[11px] font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-act-duration" className="block text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 mb-1.5">
                 Duration (Mins)
               </label>
               <input
@@ -478,18 +478,18 @@ export default function BreathBudgetTracker({
                 max="300"
                 value={newActDuration}
                 onChange={(e) => setNewActDuration(parseInt(e.target.value) || 15)}
-                className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md bg-white text-slate-900"
+                className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
               />
             </div>
             <div>
-              <label htmlFor="new-act-type" className="block text-[11px] font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-act-type" className="block text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 mb-1.5">
                 Mode / Type
               </label>
               <select
                 id="new-act-type"
                 value={newActType}
                 onChange={(e) => setNewActType(e.target.value as 'walk' | 'two_wheeler' | 'metro')}
-                className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md bg-white text-slate-900"
+                className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
               >
                 <option value="walk">Walking / Jogging</option>
                 <option value="two_wheeler">Two-Wheeler / Bike</option>
@@ -497,14 +497,14 @@ export default function BreathBudgetTracker({
               </select>
             </div>
             <div>
-              <label htmlFor="new-act-hour" className="block text-[11px] font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-act-hour" className="block text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 mb-1.5">
                 Time Window
               </label>
               <select
                 id="new-act-hour"
                 value={newActHour}
                 onChange={(e) => setNewActHour(parseInt(e.target.value) || 13)}
-                className="w-full px-2.5 py-1.5 border border-slate-300 rounded-md bg-white text-slate-900"
+                className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
               >
                 <option value="8">Morning (08:00 AM)</option>
                 <option value="13">Afternoon (01:00 PM - Cleaner)</option>
@@ -515,7 +515,7 @@ export default function BreathBudgetTracker({
             <div className="flex items-end">
               <button
                 type="submit"
-                className="w-full px-3 py-1.5 bg-teal-800 hover:bg-teal-900 text-white rounded-md font-semibold"
+                className="w-full min-h-[44px] px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white rounded-xl font-semibold focus-visible:ring-2 focus-visible:ring-teal-700"
               >
                 Add Activity
               </button>
@@ -533,35 +533,35 @@ export default function BreathBudgetTracker({
             return (
               <div
                 key={item.id}
-                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors"
+                className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors"
               >
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-xs text-slate-900">{item.name}</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-slate-100 text-slate-600">
-                      {item.durationMinutes} min • {item.timeOfDay} (PM2.5: {item.appliedConcentrationUgM3} µg/m³)
+                    <span className="font-semibold text-sm sm:text-base text-slate-900">{item.name}</span>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium">
+                      {item.durationMinutes} min • {item.timeOfDay} (PM2.5: <span className="font-mono">{item.appliedConcentrationUgM3} µg/m³</span>)
                     </span>
                     {item.mitigatedMassAvoidedUg > 0 && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-sm bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        ~{item.mitigatedMassAvoidedUg} µg Avoided
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        ~{item.mitigatedMassAvoidedUg} µg avoided
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">{item.explanation}</p>
+                  <p className="mt-1 text-sm text-slate-600 max-w-[65ch]">{item.explanation}</p>
 
                   {/* Interactivity mitigation toggles */}
-                  <div className="mt-2 flex items-center gap-3 text-[11px]">
+                  <div className="mt-2.5 flex items-center gap-3.5 text-xs">
                     {!act.isIndoor && (
                       <button
                         type="button"
                         onClick={() => handleToggleMask(act.id)}
                         className={`underline font-medium transition-colors ${
                           act.maskType === 'n95_kn95'
-                            ? 'text-emerald-700 hover:text-emerald-900'
-                            : 'text-slate-500 hover:text-slate-800'
+                            ? 'text-emerald-800 hover:text-emerald-950'
+                            : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
-                        {act.maskType === 'n95_kn95' ? '✓ N95 Fitted (~75–85% off)' : '+ Put on N95 Mask'}
+                        {act.maskType === 'n95_kn95' ? '✓ N95 Fitted (~75–85% off)' : '+ Put on N95 mask'}
                       </button>
                     )}
 
@@ -572,12 +572,12 @@ export default function BreathBudgetTracker({
                         className={`underline font-medium transition-colors ${
                           isAfternoon
                             ? 'text-teal-800 hover:text-teal-950'
-                            : 'text-slate-500 hover:text-slate-800'
+                            : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
                         {isAfternoon
                           ? '✓ Shifted to 1 PM (Lower Smog)'
-                          : 'Shift to 1 PM Solar Window'}
+                          : 'Shift to 1 PM solar window'}
                       </button>
                     )}
 
@@ -587,11 +587,11 @@ export default function BreathBudgetTracker({
                         onClick={() => handleTogglePurifier(act.id)}
                         className={`underline font-medium transition-colors ${
                           act.hasPurifier
-                            ? 'text-emerald-700 hover:text-emerald-900'
-                            : 'text-slate-500 hover:text-slate-800'
+                            ? 'text-emerald-800 hover:text-emerald-950'
+                            : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
-                        {act.hasPurifier ? '✓ HEPA Purifier Active' : '+ Turn on HEPA Purifier'}
+                        {act.hasPurifier ? '✓ HEPA Purifier Active' : '+ Turn on HEPA purifier'}
                       </button>
                     )}
                   </div>
@@ -602,7 +602,7 @@ export default function BreathBudgetTracker({
                     <span className="text-sm font-bold font-mono text-slate-900 block">
                       {item.pointsSpent} pts
                     </span>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-xs text-slate-600">
                       ~{item.inhaledMassUg} µg intake
                     </span>
                   </div>
@@ -611,9 +611,9 @@ export default function BreathBudgetTracker({
                     type="button"
                     onClick={() => handleRemove(item.id)}
                     aria-label={`Remove ${item.name}`}
-                    className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                    className="p-2 text-slate-500 hover:text-rose-600 transition-colors rounded-lg focus-visible:ring-2 focus-visible:ring-rose-500"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>

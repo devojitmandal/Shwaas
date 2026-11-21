@@ -68,10 +68,10 @@ export default function CommunityModeModal({
               <Users className="w-4 h-4 text-teal-200" />
             </div>
             <div>
-              <h2 id="community-modal-title" className="text-lg font-serif font-bold text-slate-900">
+              <h2 id="community-modal-title" className="text-lg sm:text-xl font-bold text-slate-900">
                 Community Smog Action Plan & Checklists
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-sm text-slate-600">
                 Shareable and printable protocols for Apartment RWAs, Schools, and Neighborhoods in {cityName}.
               </p>
             </div>
@@ -80,7 +80,7 @@ export default function CommunityModeModal({
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
+            className="min-h-[44px] min-w-[44px] p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition-colors flex items-center justify-center focus-visible:ring-2 focus-visible:ring-teal-700"
           >
             <X className="w-5 h-5" />
           </button>
@@ -88,38 +88,38 @@ export default function CommunityModeModal({
 
         {/* Action Toolbar */}
         <div className="px-6 py-3 bg-slate-100/70 border-b border-slate-200/60 flex items-center justify-between flex-wrap gap-2 print:hidden">
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setActiveTab('rwa')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-teal-700 ${
                 activeTab === 'rwa'
                   ? 'bg-teal-800 text-white shadow-2xs'
-                  : 'text-slate-600 hover:bg-slate-200/60'
+                  : 'text-slate-700 hover:bg-slate-200/60'
               }`}
             >
-              <Building className="w-3.5 h-3.5" />
+              <Building className="w-4 h-4" />
               <span>1. Residential Societies (RWAs)</span>
             </button>
             <button
               onClick={() => setActiveTab('schools')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-teal-700 ${
                 activeTab === 'schools'
                   ? 'bg-teal-800 text-white shadow-2xs'
-                  : 'text-slate-600 hover:bg-slate-200/60'
+                  : 'text-slate-700 hover:bg-slate-200/60'
               }`}
             >
-              <GraduationCap className="w-3.5 h-3.5" />
+              <GraduationCap className="w-4 h-4" />
               <span>2. Schools & Daycares</span>
             </button>
             <button
               onClick={() => setActiveTab('ward')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-teal-700 ${
                 activeTab === 'ward'
                   ? 'bg-teal-800 text-white shadow-2xs'
-                  : 'text-slate-600 hover:bg-slate-200/60'
+                  : 'text-slate-700 hover:bg-slate-200/60'
               }`}
             >
-              <MapPin className="w-3.5 h-3.5" />
+              <MapPin className="w-4 h-4" />
               <span>3. Local Communities</span>
             </button>
           </div>
@@ -127,20 +127,20 @@ export default function CommunityModeModal({
           <div className="flex items-center gap-2">
             <button
               onClick={handleShare}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors shadow-2xs"
+              className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-sm font-medium text-slate-700 transition-colors shadow-2xs focus-visible:ring-2 focus-visible:ring-teal-700"
             >
               {copied ? (
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <Check className="w-4 h-4 text-emerald-600" />
               ) : (
-                <Share2 className="w-3.5 h-3.5 text-teal-800" />
+                <Share2 className="w-4 h-4 text-teal-800" />
               )}
               <span>{copied ? 'Copied' : 'Share Summary'}</span>
             </button>
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold shadow-2xs transition-colors"
+              className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-sm font-semibold shadow-2xs transition-colors focus-visible:ring-2 focus-visible:ring-teal-700"
             >
-              <Printer className="w-3.5 h-3.5" />
+              <Printer className="w-4 h-4" />
               <span>Print Checklist</span>
             </button>
           </div>

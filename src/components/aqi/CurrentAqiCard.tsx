@@ -37,7 +37,7 @@ export default function CurrentAqiCard({
   return (
     <article
       aria-labelledby="current-aqi-title"
-      className="bg-white rounded-2xl p-6 sm:p-8 shadow-xs border border-slate-200/80 relative overflow-hidden"
+      className="bg-white rounded-2xl p-6 sm:p-8 shadow-xs border border-slate-200 relative overflow-hidden space-y-6"
     >
       {/* Subtle atmospheric ambient tint bar at top */}
       <div
@@ -47,27 +47,27 @@ export default function CurrentAqiCard({
       />
 
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-[13px] tracking-[0.04em] font-semibold uppercase text-slate-600">
             <span className="inline-block w-2 h-2 rounded-full bg-teal-800" aria-hidden="true" />
             <span id="current-aqi-title">Live Urban Air Quality</span>
             <span>•</span>
-            <time dateTime={timestamp}>{formattedTime}</time>
+            <time dateTime={timestamp} className="font-normal">{formattedTime}</time>
           </div>
 
-          <h2 className="mt-1 text-2xl sm:text-3xl font-serif font-bold text-slate-900 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             {cityName}
           </h2>
 
-          <p className="mt-2 text-sm text-slate-600 max-w-xl leading-relaxed">
+          <p className="text-base sm:text-[17px] leading-[1.7] text-slate-800 max-w-[65ch]">
             {description}
           </p>
         </div>
 
-        {/* Big AQI Callout with strict Accessible Chip Fill */}
+        {/* Big AQI Callout: Serif reserved for AQI number */}
         <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3 shrink-0">
           <div className="text-right">
-            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-widest block">
+            <span className="text-sm font-semibold text-slate-600 tracking-wide block">
               National AQI
             </span>
             <span className="text-5xl sm:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-none">
@@ -77,15 +77,15 @@ export default function CurrentAqiCard({
 
           {/* Accessible Category Chip: Fill + Contrast Text + Category Name */}
           <div
-            className="px-3.5 py-1.5 rounded-full font-semibold text-xs flex items-center gap-1.5 shadow-2xs"
+            className="px-4 py-2 rounded-full font-semibold text-sm flex items-center gap-2 shadow-2xs min-h-[44px]"
             style={{ backgroundColor: chipBg, color: textColor }}
             role="status"
             aria-label={`Air Quality Category: ${category}, AQI value ${aqi}`}
           >
             {category === 'Good' || category === 'Satisfactory' ? (
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
             ) : (
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden="true" />
             )}
             <span>{category}</span>
           </div>
@@ -93,53 +93,53 @@ export default function CurrentAqiCard({
       </div>
 
       {/* Pollutant metrics strip */}
-      <div className="mt-8 pt-6 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
-        <div className="p-3 rounded-xl bg-slate-50/70">
-          <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">
-            PM2.5 Concentration
+      <div className="pt-6 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+          <span className="text-xs font-semibold text-slate-600 block">
+            PM2.5 concentration
           </span>
-          <div className="mt-1 flex items-baseline gap-1">
-            <span className="text-xl font-bold font-serif text-slate-900">{pm25}</span>
-            <span className="text-xs text-slate-500">µg/m³</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl font-bold font-mono text-slate-900">{pm25}</span>
+            <span className="text-xs font-mono text-slate-600">µg/m³</span>
           </div>
-          <span className="mt-1 text-[11px] text-slate-400 block">
-            WHO guide: 15 µg/m³
+          <span className="text-sm text-slate-600 block leading-normal">
+            WHO guideline: 15 µg/m³
           </span>
         </div>
 
-        <div className="p-3 rounded-xl bg-slate-50/70">
-          <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">
-            PM10 Concentration
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+          <span className="text-xs font-semibold text-slate-600 block">
+            PM10 concentration
           </span>
-          <div className="mt-1 flex items-baseline gap-1">
-            <span className="text-xl font-bold font-serif text-slate-900">{pm10}</span>
-            <span className="text-xs text-slate-500">µg/m³</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl font-bold font-mono text-slate-900">{pm10}</span>
+            <span className="text-xs font-mono text-slate-600">µg/m³</span>
           </div>
-          <span className="mt-1 text-[11px] text-slate-400 block">
-            WHO guide: 45 µg/m³
+          <span className="text-sm text-slate-600 block leading-normal">
+            WHO guideline: 45 µg/m³
           </span>
         </div>
 
-        <div className="p-3 rounded-xl bg-slate-50/70">
-          <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">
-            Dominant Driver
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+          <span className="text-xs font-semibold text-slate-600 block">
+            Dominant pollutant
           </span>
-          <div className="mt-1 flex items-baseline gap-1">
-            <span className="text-xl font-bold font-serif text-teal-900">{dominantPollutant}</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl font-bold font-mono text-teal-900">{dominantPollutant}</span>
           </div>
-          <span className="mt-1 text-[11px] text-slate-400 block">
+          <span className="text-sm text-slate-600 block leading-normal">
             Governs primary sub-index
           </span>
         </div>
 
-        <div className="p-3 rounded-xl bg-slate-50/70">
-          <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">
-            Standard Basis
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+          <span className="text-xs font-semibold text-slate-600 block">
+            Standard basis
           </span>
-          <div className="mt-1 flex items-baseline gap-1">
-            <span className="text-sm font-semibold text-slate-800">CPCB India NAQI</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-sm font-semibold text-slate-900">CPCB India NAQI</span>
           </div>
-          <span className="mt-1 text-[11px] text-slate-400 block">
+          <span className="text-sm text-slate-600 block leading-normal">
             24-hr piecewise breakpoint
           </span>
         </div>

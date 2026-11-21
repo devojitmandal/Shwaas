@@ -279,11 +279,11 @@ export default function Home() {
       {aqiError && (
         <div
           role="alert"
-          className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-center justify-between shadow-xs"
+          className="mb-8 p-5 sm:p-6 rounded-2xl bg-rose-50 border border-rose-300 text-rose-950 text-base flex items-center justify-between shadow-xs max-w-full"
         >
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-700" />
-            <span>{aqiError}</span>
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 shrink-0 text-rose-700" />
+            <span className="leading-relaxed">{aqiError}</span>
           </div>
           <button
             type="button"
@@ -294,7 +294,7 @@ export default function Home() {
                 currentLocation.name
               )
             }
-            className="font-semibold underline ml-3 text-rose-950 hover:text-rose-800"
+            className="font-bold underline ml-4 text-rose-950 hover:text-rose-800 shrink-0 min-h-[44px] flex items-center"
           >
             Retry
           </button>
@@ -303,17 +303,17 @@ export default function Home() {
 
       {/* Loading Skeleton */}
       {isAqiLoading && !airData ? (
-        <div className="p-16 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-3">
+        <div className="p-16 text-center bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center justify-center space-y-3">
           <Loader2 className="w-8 h-8 text-teal-800 animate-spin" aria-hidden="true" />
-          <p className="text-sm font-medium text-slate-600">
+          <p className="text-base font-medium text-slate-700">
             Fetching atmospheric telemetry and computing CPCB NAQI for {currentLocation.name}...
           </p>
         </div>
       ) : airData ? (
-        <div className="w-full">
+        <div className="w-full space-y-8">
           {/* VIEW 1: TODAY */}
           {activeView === 'today' && (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
               {/* Compact AQI Summary Card */}
               <div className="md:col-span-12">
                 <CurrentAqiCard
@@ -344,21 +344,21 @@ export default function Home() {
               <div className="md:col-span-12">
                 <section
                   aria-labelledby="today-budget-summary-title"
-                  className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-4"
+                  className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200/60 flex items-center justify-center text-teal-800 shrink-0">
-                        <Activity className="w-4 h-4" />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-800 shrink-0">
+                        <Activity className="w-5 h-5" />
                       </div>
                       <div>
                         <h2
                           id="today-budget-summary-title"
-                          className="text-base font-serif font-bold text-slate-900 tracking-tight"
+                          className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight"
                         >
                           Today&apos;s Family Breath Budget Summary
                         </h2>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-sm text-slate-600 mt-0.5 max-w-[65ch]">
                           Estimated daily inhaled PM2.5 mass benchmarked against WHO 24h intake limit ({REFERENCE_DAILY_MASS_UG} µg)
                         </p>
                       </div>
@@ -367,31 +367,31 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => handleNavigate('budget')}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-teal-800 hover:bg-teal-900 text-white shadow-xs transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:outline-hidden min-h-[44px]"
+                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-teal-800 hover:bg-teal-900 text-white shadow-xs transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:outline-hidden min-h-[44px]"
                     >
                       <span>Full Budget Ledger &amp; What-If</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
 
                   {/* Summary bars for each household member */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-1">
                     {perPersonSummary.map((member, idx) => (
                       <div
                         key={idx}
-                        className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-2.5 flex flex-col justify-between"
+                        className="p-5 sm:p-6 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-3.5 flex flex-col justify-between"
                       >
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start justify-between gap-3">
                           <div>
-                            <span className="text-xs font-bold text-slate-900 block">
+                            <span className="text-base font-bold text-slate-900 block leading-tight">
                               {member.label}
                             </span>
-                            <span className="text-[10px] text-slate-500 block">
+                            <span className="text-xs font-medium text-slate-600 block mt-0.5">
                               {member.ageCategory}
                             </span>
                           </div>
                           <span
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 shadow-2xs"
+                            className="text-xs font-bold px-2.5 py-1 rounded-full shrink-0 shadow-2xs"
                             style={{ backgroundColor: member.statusColor, color: member.statusTextColor }}
                           >
                             {member.percentageOfBudget}% WHO limit
@@ -399,8 +399,8 @@ export default function Home() {
                         </div>
 
                         {/* Progress Bar */}
-                        <div className="space-y-1">
-                          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="space-y-1.5">
+                          <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full transition-all duration-300"
                               style={{
@@ -409,14 +409,14 @@ export default function Home() {
                               }}
                             />
                           </div>
-                          <div className="flex items-center justify-between text-[11px] text-slate-600">
-                            <span>Inhaled: <strong>{member.inhaledMassUg} µg</strong></span>
-                            <span>Avoided: <strong>{member.avoidedMassUg} µg</strong></span>
+                          <div className="flex items-center justify-between text-xs text-slate-700">
+                            <span>Inhaled: <strong className="font-mono text-slate-900">{member.inhaledMassUg} µg</strong></span>
+                            <span>Avoided: <strong className="font-mono text-slate-900">{member.avoidedMassUg} µg</strong></span>
                           </div>
                         </div>
 
                         {member.vulnerabilityNote && (
-                          <p className="text-[10px] text-slate-500 italic pt-1 border-t border-slate-200/60 leading-tight">
+                          <p className="text-xs text-slate-600 italic pt-2 border-t border-slate-200 leading-normal">
                             {member.vulnerabilityNote}
                           </p>
                         )}
@@ -430,7 +430,7 @@ export default function Home() {
 
           {/* VIEW 2: BREATH BUDGET */}
           {activeView === 'budget' && (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
               <div className="md:col-span-12">
                 <ProfileBadge
                   profile={profile}
@@ -472,7 +472,7 @@ export default function Home() {
 
           {/* VIEW 3: MY PLAN */}
           {activeView === 'plan' && (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
               <div className="md:col-span-12">
                 {plan ? (
                   <TodaysPlanView
@@ -482,9 +482,9 @@ export default function Home() {
                     onRefresh={() => airData && loadPlan(airData, profile)}
                   />
                 ) : isPlanLoading ? (
-                  <div className="p-16 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-3">
+                  <div className="p-16 text-center bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center justify-center space-y-3">
                     <Loader2 className="w-8 h-8 text-teal-800 animate-spin" aria-hidden="true" />
-                    <p className="text-sm font-medium text-slate-600">
+                    <p className="text-base font-medium text-slate-700">
                       Generating tailored smog defense protocol...
                     </p>
                   </div>
@@ -495,7 +495,7 @@ export default function Home() {
 
           {/* VIEW 4: ROOM & PHOTO */}
           {activeView === 'room' && (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
               <div className="md:col-span-12">
                 <IndoorAirModel outdoorPm25={airData.current.pm25} />
               </div>
@@ -507,7 +507,7 @@ export default function Home() {
 
           {/* VIEW 5: 24H FORECAST */}
           {activeView === 'forecast' && (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
               <div className="md:col-span-12">
                 <HourlyChart
                   hourly={airData.hourly}
@@ -528,7 +528,7 @@ export default function Home() {
 
           {/* VIEW 6: IMPACT PROOF */}
           {activeView === 'impact' && (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
               {exposure && (
                 <div className="md:col-span-12">
                   <MyImpactDashboard exposure={exposure} cityName={airData.cityName} />
@@ -537,17 +537,17 @@ export default function Home() {
 
               {exposure && (
                 <div className="md:col-span-12">
-                  <details className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs group">
-                    <summary className="cursor-pointer text-sm font-bold uppercase tracking-wider text-teal-800 hover:text-teal-950 flex items-center justify-between select-none focus-visible:outline-hidden">
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-teal-800" />
+                  <details className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs group">
+                    <summary className="cursor-pointer text-base font-bold text-teal-800 hover:text-teal-950 flex items-center justify-between select-none focus-visible:outline-hidden">
+                      <div className="flex items-center gap-2.5">
+                        <ShieldCheck className="w-5 h-5 text-teal-800" />
                         <span>How it&apos;s calculated (Scientific Dose Formula &amp; Evidence)</span>
                       </div>
-                      <span className="text-xs font-normal lowercase text-slate-500 group-open:hidden">
-                        (expand breakdown)
+                      <span className="text-xs font-normal text-slate-600 group-open:hidden">
+                        (tap to expand breakdown)
                       </span>
                     </summary>
-                    <div className="mt-4 pt-4 border-t border-slate-100">
+                    <div className="mt-4 pt-4 border-t border-slate-200">
                       <ImpactExplainer exposure={exposure} />
                     </div>
                   </details>
@@ -558,7 +558,7 @@ export default function Home() {
 
           {/* VIEW 7: SHARE CARD */}
           {activeView === 'share' && (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
               <div className="md:col-span-12">
                 <WhatsAppShareCard
                   cityName={airData.cityName}
@@ -577,7 +577,7 @@ export default function Home() {
 
           {/* VIEW 8: COMMUNITY */}
           {activeView === 'community' && (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
               <div className="md:col-span-12">
                 <CommunityView
                   cityName={airData.cityName}

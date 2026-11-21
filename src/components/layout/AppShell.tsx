@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import Sidebar, { AppView, NAV_ITEMS } from '@/components/layout/Sidebar';
+import { useState, useEffect } from 'react';
+import Sidebar, { AppView, NAV_ITEMS, TextScale } from '@/components/layout/Sidebar';
 import TopBar from '@/components/layout/TopBar';
 import { SupportedLanguage } from '@/lib/i18n/translations';
 import {
@@ -53,6 +53,43 @@ export default function AppShell({
   children,
 }: AppShellProps) {
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
+  const [textScale, setTextScale] = useState<TextScale>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('shwaas_text_scale') as TextScale | null;
+        if (saved && ['100', '112', '125'].includes(saved)) {
+          return saved;
+        }
+      } catch {
+        // localStorage may be unavailable
+      }
+    }
+    return '100';
+  });
+
+  // Sync data-text-scale attribute on html element
+  useEffect(() => {
+    try {
+      document.documentElement.setAttribute('data-text-scale', textScale);
+    } catch {
+      // Ignore DOM errors in SSR
+    }
+  }, [textScale]);
+
+  // Sync data-lang attribute on html tag for font switching
+  useEffect(() => {
+    document.documentElement.setAttribute('data-lang', language);
+  }, [language]);
+
+  const handleTextScaleChange = (scale: TextScale) => {
+    setTextScale(scale);
+    try {
+      localStorage.setItem('shwaas_text_scale', scale);
+      document.documentElement.setAttribute('data-text-scale', scale);
+    } catch {
+      // localStorage may fail in private mode
+    }
+  };
 
   // Items for the "More" mobile sheet
   const moreItems = NAV_ITEMS.filter(
@@ -60,11 +97,14 @@ export default function AppShell({
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row antialiased">
+    <div
+      data-lang={language}
+      className="min-h-screen bg-slate-50 text-slate-800 flex flex-col md:flex-row antialiased selection:bg-teal-100 selection:text-teal-900"
+    >
       {/* Skip to Content link for keyboard accessibility */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-teal-800 focus:text-white focus:rounded-xl focus:shadow-lg focus:outline-hidden text-xs font-semibold"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-teal-800 focus:text-white focus:rounded-xl focus:shadow-lg focus:outline-hidden text-sm font-semibold"
       >
         Skip to main content
       </a>
@@ -77,6 +117,8 @@ export default function AppShell({
           language={language}
           onLanguageChange={onLanguageChange}
           onProfileClick={onProfileClick}
+          textScale={textScale}
+          onTextScaleChange={handleTextScaleChange}
         />
       </div>
 
@@ -95,7 +137,7 @@ export default function AppShell({
         <main
           id="main-content"
           tabIndex={-1}
-          className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 pb-28 md:pb-12 focus:outline-hidden"
+          className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 py-8 pb-32 md:pb-16 focus:outline-hidden"
         >
           {children}
         </main>
@@ -104,7 +146,7 @@ export default function AppShell({
       {/* Mobile Bottom Tab Bar (<768px) */}
       <nav
         aria-label="Mobile Navigation"
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-2 py-1 flex items-center justify-around shadow-lg"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 flex items-center justify-around shadow-lg"
       >
         {PRIMARY_MOBILE_TABS.map((tab) => {
           const Icon = tab.icon;
@@ -115,13 +157,13 @@ export default function AppShell({
               type="button"
               onClick={() => onNavigate(tab.id)}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 min-h-[44px] min-w-[44px] rounded-xl text-[10px] font-semibold transition-all focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:outline-hidden ${
+              className={`flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[48px] min-w-[44px] rounded-xl text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:outline-hidden ${
                 isActive
                   ? 'text-teal-800 font-bold'
-                  : 'text-slate-500 hover:text-slate-900'
+                  : 'text-slate-600 hover:text-slate-950'
               }`}
             >
-              <Icon className={`w-5 h-5 mb-0.5 ${isActive ? 'text-teal-800' : 'text-slate-400'}`} />
+              <Icon className={`w-5 h-5 mb-0.5 ${isActive ? 'text-teal-800' : 'text-slate-500'}`} />
               <span className="truncate">{tab.label}</span>
             </button>
           );
@@ -133,13 +175,13 @@ export default function AppShell({
           onClick={() => setIsMoreSheetOpen(true)}
           aria-expanded={isMoreSheetOpen}
           aria-controls="mobile-more-sheet"
-          className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 min-h-[44px] min-w-[44px] rounded-xl text-[10px] font-semibold transition-all focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:outline-hidden ${
+          className={`flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[48px] min-w-[44px] rounded-xl text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:outline-hidden ${
             moreItems.some((item) => item.id === activeView)
               ? 'text-teal-800 font-bold'
-              : 'text-slate-500 hover:text-slate-900'
+              : 'text-slate-600 hover:text-slate-950'
           }`}
         >
-          <MoreHorizontal className="w-5 h-5 mb-0.5 text-slate-400" />
+          <MoreHorizontal className="w-5 h-5 mb-0.5 text-slate-500" />
           <span>More</span>
         </button>
       </nav>
@@ -158,22 +200,22 @@ export default function AppShell({
             onClick={(e) => e.stopPropagation()}
             className="bg-white rounded-t-3xl p-6 border-t border-slate-200 shadow-2xl space-y-5 animate-in slide-in-from-bottom duration-200 max-h-[85vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 id="more-sheet-title" className="font-serif font-bold text-base text-slate-900">
-                Additional Tools & Settings
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <h3 id="more-sheet-title" className="font-serif font-bold text-lg text-slate-900">
+                Additional Views &amp; Controls
               </h3>
               <button
                 type="button"
                 onClick={() => setIsMoreSheetOpen(false)}
                 aria-label="Close more menu"
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Additional Navigation Links */}
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-3">
               {moreItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeView === item.id;
@@ -186,34 +228,61 @@ export default function AppShell({
                       setIsMoreSheetOpen(false);
                     }}
                     aria-current={isActive ? 'page' : undefined}
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold text-left min-h-[44px] transition-all ${
+                    className={`flex items-center gap-2.5 p-3.5 rounded-xl border text-sm font-semibold text-left min-h-[48px] transition-all ${
                       isActive
                         ? 'bg-teal-800 text-white border-teal-800 shadow-xs'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{item.label}</span>
+                    <span className="leading-snug break-words">{item.label}</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Quick Profile & Language Controls */}
-            <div className="pt-2 border-t border-slate-100 space-y-3">
+            {/* Text Scaler & Language Controls */}
+            <div className="pt-3 border-t border-slate-200 space-y-3.5">
+              <div
+                role="group"
+                aria-label="Text size scale"
+                className="flex items-center justify-between bg-slate-100 p-2 rounded-xl border border-slate-200 text-xs font-semibold"
+              >
+                <span className="text-xs font-bold text-slate-700 px-2 uppercase tracking-wide">
+                  Text Scale
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {(['100', '112', '125'] as TextScale[]).map((scale) => (
+                    <button
+                      key={scale}
+                      type="button"
+                      onClick={() => handleTextScaleChange(scale)}
+                      aria-pressed={textScale === scale}
+                      className={`px-3 py-1.5 rounded-lg font-bold min-h-[38px] transition-all ${
+                        textScale === scale
+                          ? 'bg-teal-800 text-white shadow-2xs'
+                          : 'text-slate-700 hover:text-slate-950'
+                      } ${scale === '100' ? 'text-xs' : scale === '112' ? 'text-sm' : 'text-base'}`}
+                    >
+                      {scale === '100' ? 'A− (100%)' : scale === '112' ? 'A (112%)' : 'A+ (125%)'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <button
                 type="button"
                 onClick={() => {
                   setIsMoreSheetOpen(false);
                   onProfileClick();
                 }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200/80 transition-colors min-h-[44px]"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-slate-800 bg-white border border-slate-300 hover:bg-slate-100 transition-colors min-h-[48px]"
               >
                 <Compass className="w-4 h-4 text-teal-800" />
                 <span>Adjust Household Profile</span>
               </button>
 
-              <div className="flex items-center justify-between gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/80 text-xs font-semibold">
+              <div className="flex items-center justify-between gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold">
                 {(['en', 'hi', 'kn'] as SupportedLanguage[]).map((lang) => (
                   <button
                     key={lang}
@@ -221,10 +290,10 @@ export default function AppShell({
                     onClick={() => {
                       onLanguageChange(lang);
                     }}
-                    className={`flex-1 py-2 rounded-lg text-center transition-all min-h-[36px] ${
+                    className={`flex-1 py-2.5 rounded-lg text-center transition-all min-h-[40px] ${
                       language === lang
                         ? 'bg-teal-800 text-white shadow-2xs font-bold'
-                        : 'text-slate-600 hover:text-slate-900'
+                        : 'text-slate-700 hover:text-slate-950'
                     }`}
                   >
                     {lang === 'en' ? 'EN' : lang === 'hi' ? 'हिन्दी' : 'ಕನ್ನಡ'}

@@ -45,13 +45,13 @@ export default function TopBar({
             style={{ backgroundColor: chipBg, color: textColor }}
           >
             <div className="flex flex-col text-right leading-none">
-              <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">
+              <span className="text-[11px] uppercase font-semibold tracking-[0.04em] opacity-80">
                 NAQI
               </span>
               <span className="font-mono text-base font-bold">{aqi}</span>
             </div>
             <div className="h-5 w-px bg-current opacity-20" aria-hidden="true" />
-            <span className="text-xs font-bold tracking-tight">
+            <span className="text-sm font-semibold tracking-tight">
               {category}
             </span>
           </div>

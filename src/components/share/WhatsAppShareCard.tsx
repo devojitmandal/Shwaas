@@ -80,6 +80,9 @@ ${
     const ctx = canvas.getContext('2d');
     if (!ctx) return '';
 
+    const FONT_SANS = "'Noto Sans Devanagari', 'Noto Sans Kannada', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    const FONT_MONO = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+
     // Background: Mist Slate
     ctx.fillStyle = '#F8FAFC';
     ctx.fillRect(0, 0, width, height);
@@ -90,12 +93,12 @@ ${
 
     // Header Tag
     ctx.fillStyle = '#0E7490';
-    ctx.font = 'bold 15px sans-serif';
+    ctx.font = `bold 16px ${FONT_SANS}`;
     ctx.fillText('SHWAAS (श्वास) • हर सांस का हिसाब', 50, 55);
 
     // Date & Time
-    ctx.fillStyle = '#64748B';
-    ctx.font = '13px sans-serif';
+    ctx.fillStyle = '#475569';
+    ctx.font = `14px ${FONT_SANS}`;
     const dateStr = new Date().toLocaleDateString('en-IN', {
       weekday: 'long',
       year: 'numeric',
@@ -107,12 +110,12 @@ ${
 
     // City Title
     ctx.fillStyle = '#0F172A';
-    ctx.font = 'bold 36px serif';
+    ctx.font = `bold 36px ${FONT_SANS}`;
     ctx.fillText(cityName, 50, 125);
 
     // Big AQI Box Card
     ctx.fillStyle = '#FFFFFF';
-    ctx.strokeStyle = '#E2E8F0';
+    ctx.strokeStyle = '#CBD5E1';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.roundRect(50, 150, 700, 150, 16);
@@ -124,9 +127,9 @@ ${
     ctx.font = 'bold 64px serif';
     ctx.fillText(String(aqi), 80, 230);
 
-    ctx.fillStyle = '#64748B';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('CPCB NATIONAL AQI', 80, 255);
+    ctx.fillStyle = '#475569';
+    ctx.font = `bold 13px ${FONT_SANS}`;
+    ctx.fillText('National AQI', 80, 255);
 
     // Category Chip Fill inside box
     ctx.fillStyle = categoryMeta.chipBg;
@@ -135,11 +138,11 @@ ${
     ctx.fill();
 
     ctx.fillStyle = categoryMeta.textColor;
-    ctx.font = 'bold 22px sans-serif';
-    ctx.fillText(`${category.toUpperCase()}`, 385, 223);
+    ctx.font = `bold 22px ${FONT_SANS}`;
+    ctx.fillText(`${category}`, 385, 223);
 
-    ctx.fillStyle = '#475569';
-    ctx.font = '13px sans-serif';
+    ctx.fillStyle = '#334155';
+    ctx.font = `14px ${FONT_MONO}`;
     ctx.fillText(`PM2.5: ${pm25} µg/m³ • Driver: ${dominantPollutant}`, 360, 275);
 
     // Window Cards: Best Window
@@ -151,14 +154,14 @@ ${
     ctx.stroke();
 
     ctx.fillStyle = noSafeWindowAvailable ? '#B45309' : '#15803D';
-    ctx.font = 'bold 15px sans-serif';
+    ctx.font = `bold 16px ${FONT_SANS}`;
     ctx.fillText(
-      (noSafeWindowAvailable ? '⚠️ LEAST-POLLUTED WINDOW: ' : '🟢 OPTIMAL ACTIVITY WINDOW: ') + bestRange,
+      (noSafeWindowAvailable ? 'Least-polluted window: ' : 'Cleanest activity window: ') + bestRange,
       75,
       355
     );
-    ctx.fillStyle = noSafeWindowAvailable ? '#92400E' : '#166534';
-    ctx.font = '13px sans-serif';
+    ctx.fillStyle = noSafeWindowAvailable ? '#78350F' : '#166534';
+    ctx.font = `14px ${FONT_SANS}`;
     ctx.fillText(
       noSafeWindowAvailable
         ? 'All hours are elevated (>200 AQI). Step out only if mandatory; keep visits brief.'
@@ -176,10 +179,10 @@ ${
     ctx.stroke();
 
     ctx.fillStyle = '#DC2626';
-    ctx.font = 'bold 15px sans-serif';
-    ctx.fillText('🔴 PEAK INVERSION SMOG TRAP: ' + worstRange, 75, 485);
+    ctx.font = `bold 16px ${FONT_SANS}`;
+    ctx.fillText('Peak inversion smog trap: ' + worstRange, 75, 485);
     ctx.fillStyle = '#991B1B';
-    ctx.font = '13px sans-serif';
+    ctx.font = `14px ${FONT_SANS}`;
     ctx.fillText(
       'Ground exhaust trapped by cool air. Strictly avoid morning jogging and outdoor physical play.',
       75,
@@ -195,33 +198,33 @@ ${
     ctx.stroke();
 
     ctx.fillStyle = '#0F172A';
-    ctx.font = 'bold 18px serif';
-    ctx.fillText("TODAY'S 3 FAMILY DEFENSE RULES", 75, 620);
+    ctx.font = `bold 20px ${FONT_SANS}`;
+    ctx.fillText("Today's 3 Family Defense Rules", 75, 620);
 
     ctx.fillStyle = '#1E293B';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = `bold 15px ${FONT_SANS}`;
     ctx.fillText('1. Commute & Transit:', 75, 655);
     ctx.fillStyle = '#475569';
-    ctx.font = '13px sans-serif';
+    ctx.font = `14px ${FONT_SANS}`;
     ctx.fillText('Wear certified N95 respirators. Avoid open two-wheelers during morning inversion hours.', 95, 680);
 
     ctx.fillStyle = '#1E293B';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = `bold 15px ${FONT_SANS}`;
     ctx.fillText('2. Home Sealing & Cleaning:', 75, 720);
     ctx.fillStyle = '#475569';
-    ctx.font = '13px sans-serif';
+    ctx.font = `14px ${FONT_SANS}`;
     ctx.fillText('Keep bedroom windows sealed. Wet-mop floors rather than dry sweeping to prevent dust plumes.', 95, 745);
 
     ctx.fillStyle = '#1E293B';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = `bold 15px ${FONT_SANS}`;
     ctx.fillText('3. Vulnerable Care (Kids & Seniors):', 75, 785);
     ctx.fillStyle = '#475569';
-    ctx.font = '13px sans-serif';
+    ctx.font = `14px ${FONT_SANS}`;
     ctx.fillText('Keep infants and elders in purified clean-rooms with HEPA or DIY box-fan filtration.', 95, 810);
 
     // Footer & Data Provenance
-    ctx.fillStyle = '#64748B';
-    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#475569';
+    ctx.font = `13px ${FONT_SANS}`;
     ctx.fillText(`Telemetry: ${dataSource} • India CPCB NAQI Standard`, 50, 915);
     ctx.fillText('Shwaas (श्वास) • हर सांस का हिसाब • Decision-Support (Not Medical Advice) • shwaas.in', 50, 940);
 
@@ -280,34 +283,34 @@ ${
   return (
     <section
       aria-labelledby="whatsapp-card-heading"
-      className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-xs space-y-6"
+      className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6"
     >
       {/* Hidden canvas for high-res PNG export */}
       <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-800">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[13px] tracking-[0.04em] font-semibold uppercase text-teal-800">
             <MessageCircle className="w-4 h-4 text-emerald-600" aria-hidden="true" />
-            <span id="whatsapp-card-heading">Family & Society WhatsApp Card</span>
+            <span id="whatsapp-card-heading">Family &amp; Society WhatsApp Card</span>
           </div>
-          <h3 className="mt-1 text-2xl font-serif font-bold text-slate-900 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             One-Tap Visual Share for WhatsApp
-          </h3>
-          <p className="mt-1 text-xs text-slate-500 max-w-xl leading-relaxed">
+          </h2>
+          <p className="text-base text-slate-700 max-w-[65ch] leading-relaxed">
             Generate an image of today&apos;s plan to share with family groups, school parent chats, and apartment society committees.
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
+        <div className="flex items-center gap-3 flex-wrap shrink-0">
           <button
             type="button"
             onClick={handleCopyText}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-2xs focus-visible:outline-2 focus-visible:outline-teal-800"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-800 transition-colors shadow-2xs min-h-[44px] focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:outline-hidden"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-600" />}
+            {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-600" />}
             <span>{copied ? 'Copied Text' : 'Copy Text'}</span>
           </button>
 
@@ -315,100 +318,85 @@ ${
             type="button"
             onClick={handleDownloadImage}
             disabled={isGenerating}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-2xs focus-visible:outline-2 focus-visible:outline-teal-800 disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-800 transition-colors shadow-2xs min-h-[44px] focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:outline-hidden disabled:opacity-50"
           >
-            <Download className="w-3.5 h-3.5 text-teal-800" />
+            <Download className="w-4 h-4 text-teal-800" />
             <span>{isGenerating ? 'Rendering...' : 'Download Image'}</span>
           </button>
 
           <button
             type="button"
             onClick={handleShareWhatsApp}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-colors focus-visible:outline-2 focus-visible:outline-emerald-600"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-hidden"
           >
-            <MessageCircle className="w-3.5 h-3.5" />
+            <MessageCircle className="w-4 h-4" />
             <span>Share on WhatsApp</span>
           </button>
         </div>
       </div>
 
       {/* Live Card Visual Preview */}
-      <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 max-w-lg mx-auto shadow-xs text-slate-900 space-y-4">
+      <div className="p-6 sm:p-7 rounded-2xl bg-slate-50 border border-slate-200 max-w-xl mx-auto shadow-xs text-slate-900 space-y-4">
         {/* Card Header */}
-        <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
           <div>
-            <span className="text-[10px] font-bold tracking-widest text-teal-800 uppercase block">
+            <span className="text-xs font-bold tracking-wider text-teal-800 uppercase block">
               Shwaas Daily Protocol
             </span>
-            <span className="text-lg font-serif font-bold text-slate-900">{cityName}</span>
+            <span className="text-xl font-bold text-slate-900">{cityName}</span>
           </div>
           <div className="text-right">
-            <span className="text-[11px] text-slate-500 block">
+            <span className="text-xs font-medium text-slate-600 block">
               {new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
             </span>
-            <span className="text-[9px] font-mono text-slate-400 block">Model Forecast</span>
+            <span className="text-xs text-slate-600 block">Model Forecast</span>
           </div>
         </div>
 
-        {/* Big AQI Callout inside Card */}
-        <div className="flex items-center justify-between p-3.5 rounded-xl bg-white border border-slate-200">
+        {/* Big AQI Callout Box */}
+        <div className="p-4 rounded-xl bg-white border border-slate-200 flex items-center justify-between">
           <div>
-            <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+            <span className="text-xs font-medium text-slate-600 block">
               National AQI
             </span>
-            <span className="text-3xl font-serif font-bold text-slate-950">{aqi}</span>
+            <span className="text-4xl font-serif font-bold text-slate-950">
+              {aqi}
+            </span>
           </div>
-
           <div
-            className="px-3 py-1.5 rounded-lg text-xs font-bold"
-            style={{
-              backgroundColor: categoryMeta.chipBg,
-              color: categoryMeta.textColor,
-            }}
+            className="px-4 py-2 rounded-xl text-sm font-semibold shadow-2xs"
+            style={{ backgroundColor: categoryMeta.chipBg, color: categoryMeta.textColor }}
           >
-            {category} (PM2.5: {pm25} µg/m³)
+            {category}
           </div>
         </div>
 
-        {/* Windows */}
-        <div className="space-y-2 text-xs">
-          <div className={`p-2.5 rounded-lg border ${noSafeWindowAvailable ? 'bg-amber-50 border-amber-200 text-amber-950' : 'bg-emerald-50 border-emerald-200 text-emerald-950'}`}>
-            <span className="font-bold block">
-              {noSafeWindowAvailable ? '⚠️ Least-Polluted Window: ' : '🟢 Best Outdoor Window: '}
-              {bestRange}
-            </span>
-            <span className="text-[11px] opacity-90">
-              {noSafeWindowAvailable
-                ? 'All hours >200 AQI. Step out only if mandatory; keep duration minimal.'
-                : 'Safest time for school transit, errands & 15-min home ventilation.'}
-            </span>
+        {/* Windows Summary */}
+        <div className="space-y-2 text-sm text-slate-800">
+          <div className="p-3.5 rounded-xl bg-white border border-emerald-200 flex items-start gap-2.5">
+            <span className="text-emerald-700 font-bold shrink-0">✓</span>
+            <div>
+              <span className="font-bold text-emerald-950 block">
+                {noSafeWindowAvailable ? 'Least-polluted window: ' : 'Cleanest activity window: '}
+                {bestRange}
+              </span>
+              <span className="text-xs text-slate-600 block mt-0.5">
+                {bestWindow.advisory}
+              </span>
+            </div>
           </div>
 
-          <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-950">
-            <span className="font-bold block">🔴 Inversion Smog Trap: {worstRange}</span>
-            <span className="text-[11px] text-rose-800">Peak ground pollutants trapped. Keep kids & elders strictly indoors.</span>
+          <div className="p-3.5 rounded-xl bg-white border border-rose-200 flex items-start gap-2.5">
+            <span className="text-rose-700 font-bold shrink-0">✕</span>
+            <div>
+              <span className="font-bold text-rose-950 block">
+                Peak inversion smog trap: {worstRange}
+              </span>
+              <span className="text-xs text-slate-600 block mt-0.5">
+                {worstWindow.advisory}
+              </span>
+            </div>
           </div>
-        </div>
-
-        {/* 3 Core Rules */}
-        <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs space-y-1.5">
-          <span className="font-serif font-bold text-slate-900 block text-xs">
-            3 Golden Rules for Today:
-          </span>
-          <p className="text-[11px] text-slate-700">
-            <strong>1. Commute:</strong> Wear certified N95; avoid open two-wheelers.
-          </p>
-          <p className="text-[11px] text-slate-700">
-            <strong>2. Home:</strong> Keep windows sealed until 1 PM; wet-mop floors.
-          </p>
-          <p className="text-[11px] text-slate-700">
-            <strong>3. Society:</strong> Give electric heaters to night guards to eliminate open waste fires.
-          </p>
-        </div>
-
-        <div className="text-[10px] text-slate-400 text-center pt-1 border-t border-slate-100 flex items-center justify-between">
-          <span>{dataSource}</span>
-          <span>Decision-Support (Not Medical Advice)</span>
         </div>
       </div>
     </section>
