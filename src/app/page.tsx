@@ -26,7 +26,7 @@ import {
   DEFAULT_HOUSEHOLD_PROFILE,
   loadProfileFromStorage,
 } from '@/lib/validation/profileSchema';
-import { PlanResponse, generateFallbackPlan } from '@/lib/plan/planSchema';
+import { PlanResponse, PlanSource, generateFallbackPlan } from '@/lib/plan/planSchema';
 import { calculateDailyExposure, ExposureResult } from '@/lib/exposure/engine';
 import {
   calculateHouseholdPerPersonBudgets,
@@ -111,7 +111,7 @@ export default function Home() {
   // Plan & Exposure state
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [exposure, setExposure] = useState<ExposureResult | null>(null);
-  const [planSource, setPlanSource] = useState<string>('deterministic_engine_fallback');
+  const [planSource, setPlanSource] = useState<PlanSource>('deterministic_engine_fallback');
   const [isPlanLoading, setIsPlanLoading] = useState(false);
 
   // Listen to hashchange
@@ -215,7 +215,9 @@ export default function Home() {
           const json = await res.json();
           setPlan(json.plan);
           setExposure(json.exposure);
-          setPlanSource(json.source);
+          setPlanSource(
+            json.source === 'gemini_personalized' ? 'gemini_personalized' : 'deterministic_engine_fallback'
+          );
         } else {
           applyFallback();
         }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PlanResponse } from '@/lib/plan/planSchema';
+import { PlanResponse, PlanSource } from '@/lib/plan/planSchema';
 import {
   Sparkles,
   ShieldAlert,
@@ -17,7 +17,7 @@ interface TodaysPlanViewProps {
   plan: PlanResponse;
   isLoading?: boolean;
   onRefresh?: () => void;
-  source?: string;
+  source?: PlanSource;
 }
 
 export default function TodaysPlanView({

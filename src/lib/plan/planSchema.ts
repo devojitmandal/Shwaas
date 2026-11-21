@@ -39,6 +39,8 @@ export const planResponseSchema = z.object({
 
 export type PlanResponse = z.infer<typeof planResponseSchema>;
 
+export type PlanSource = 'gemini_personalized' | 'deterministic_engine_fallback';
+
 export interface GenerateFallbackParams {
   cityName: string;
   profile: HouseholdProfile;
