@@ -5,7 +5,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16_App_Router-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4_Tokens-38bdf8?style=flat&logo=tailwindcss)](https://tailwindcss.com/)
-[![Vitest](https://img.shields.io/badge/Vitest-51%2F51_Tests_Passing-729B1B?style=flat&logo=vitest)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-58%2F58_Tests_Passing-729B1B?style=flat&logo=vitest)](https://vitest.dev/)
 [![CPCB NAQI](https://img.shields.io/badge/Air_Standard-CPCB_India_NAQI-0E7490?style=flat)](https://cpcb.nic.in/)
 [![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG_2.1_AA-success?style=flat)](https://www.w3.org/WAI/WCAG21/AA/)
 [![CSP Configured](https://img.shields.io/badge/Security-CSP_Headers_Active-15803D?style=flat)](docs/SECURITY.md)
@@ -22,6 +22,60 @@ Severe winter smog across urban India traps toxic fine particulate matter ($\tex
 > **LLMs must NOT invent numbers.**
 > All numerical metrics — National AQI sub-indices, physical inhaled particulate mass in micrograms ($\mu\text{g}$), indoor single-zone mass-balance concentrations, and what-if percentages — are computed **exclusively** by deterministic, unit-tested mathematical engines (`src/lib/exposure/` and `src/lib/aqi/`).
 > Google Gemini 3.8 Flash (`gemini-3.8-flash`) acts strictly as a structured contextual communicator, receiving pre-calculated parameters and synthesizing empathetic behavioral protocols without fabricating statistics.
+
+### 🔄 Data Pipeline: Deterministic Engine → Gemini → Validated JSON
+
+To guarantee zero fabricated metrics, data flows through a strict 3-stage validation pipeline:
+
+```
+Telemetry & Profile ──▶ Deterministic Engine ──▶ Structured Gemini Prompt ──▶ Zod Schema Validation ──▶ Safe UI Delivery
+ (Open-Meteo & User)     (EPA & CPCB Math)       (Injected Invariants)        (planResponseSchema)        (React Views)
+```
+
+1. **Deterministic Engine Processing (`src/lib/exposure/engine.ts`):**
+   Raw telemetry and household parameters are evaluated using EPA minute ventilation volumes and single-zone mass-balance:
+   ```ts
+   const exposure = calculateDailyExposure({
+     currentAqi: 368,
+     pm25Concentration: 218,
+     outdoorHours: 2.5,
+     commuteType: 'two_wheeler',
+     maskType: 'none',
+     hasPurifier: false,
+   });
+   // Pre-computed invariants:
+   // totalInhaledMassUg: 724 µg/day | potentialReductionPercent: 72% | healthRiskTier: 'Severe'
+   ```
+
+2. **Grounded Context Injection into Gemini (`src/app/api/plan/route.ts`):**
+   Pre-calculated metrics are locked into the system prompt with anti-hallucination guardrails:
+   ```text
+   CRITICAL ANTI-HALLUCINATION INSTRUCTIONS:
+   - You must NOT invent, guess, or fabricate any numerical metrics, AQI values, or percentages.
+   - All exposure metrics are pre-computed by our deterministic engine:
+     * Current NAQI: 368 (Severe) | Ambient PM2.5: 218 µg/m³
+     * Total Daily Inhaled Mass: ~724 µg/day | Potential Reduction: ~72% (~521 µg avoided)
+     * Best Window: 12:30 PM – 03:30 PM (Avg AQI: 142, Moderate)
+   - Explain the direct impact using ONLY these deterministic figures.
+   - Output MUST strictly be valid JSON matching the requested schema.
+   ```
+
+3. **Runtime Schema Enforcement & Validated JSON (`src/lib/plan/planSchema.ts`):**
+   Gemini outputs JSON via `responseMimeType: 'application/json'`, which is validated server-side against `planResponseSchema.safeParse()`:
+   ```json
+   {
+     "headline": "Severe Inversion Peak: Shield Children & Shift Outdoor Transit",
+     "executiveSummary": "Ambient PM2.5 is 218 µg/m³. Your routine yields ~724 µg daily intake...",
+     "lowEmissionRoutine": [
+       {
+         "timeOfDay": "08:30 AM",
+         "action": "Switch morning two-wheeler transit to closed metro or fit an N95 respirator",
+         "estimatedExposureReduction": "~72% intake reduction"
+       }
+     ]
+   }
+   ```
+   *If Gemini is unavailable, rate-limited, or fails schema parsing, `generateFallbackPlan()` instantly yields an identical validated payload with zero downtime.*
 
 ---
 
