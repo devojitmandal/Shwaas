@@ -11,7 +11,6 @@ import { MaskType, CommuteType } from '@/lib/exposure/engine';
 import {
   BatteryCharging,
   Plus,
-  Trash2,
   Info,
   ShieldCheck,
   Wind,
@@ -19,6 +18,9 @@ import {
   Sun,
   Users,
 } from 'lucide-react';
+import MemberBudgetCard from './MemberBudgetCard';
+import AddActivityForm from './AddActivityForm';
+import ActivityLedgerItem from './ActivityLedgerItem';
 
 interface BreathBudgetTrackerProps {
   currentAqi: number;
@@ -330,73 +332,7 @@ export default function BreathBudgetTracker({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {memberBudgets.map((member) => (
-            <div
-              key={member.memberType}
-              className="p-5 rounded-2xl border border-slate-200/90 bg-white shadow-2xs flex flex-col justify-between space-y-3"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <span className="text-sm font-bold text-slate-900 block">{member.label}</span>
-                    <span className="text-xs text-slate-600 font-medium">{member.ageCategory}</span>
-                  </div>
-                  <span
-                    className="px-2.5 py-1 rounded-full text-xs font-bold shrink-0"
-                    style={{
-                      backgroundColor: member.statusColor,
-                      color: member.statusTextColor,
-                    }}
-                  >
-                    {member.status}
-                  </span>
-                </div>
-
-                <div className="mt-3 text-xs text-slate-700 space-y-1">
-                  <div className="flex justify-between">
-                    <span>Sedentary inhalation:</span>
-                    <span className="font-mono font-medium">{member.sedentaryBreathingRate} m³/h</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Active inhalation:</span>
-                    <span className="font-mono font-medium">{member.activeBreathingRate} m³/h</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-3 border-t border-slate-100">
-                <div className="flex items-center justify-between text-sm font-semibold text-slate-800">
-                  <span>{member.pointsSpent} pts</span>
-                  <span className="text-xs font-normal text-slate-600">
-                    Ref: 100 pts ({member.referenceDailyMassUg} µg)
-                  </span>
-                </div>
-
-                <div className="h-3.5 w-full rounded-full bg-slate-100 overflow-hidden flex relative">
-                  {/* Reference line at 50% (100 pt benchmark out of 200 pt max) */}
-                  <div
-                    className="absolute top-0 bottom-0 border-r-2 border-slate-400 z-10"
-                    style={{ left: '50%' }}
-                    title="100 Pt Benchmark"
-                  />
-                  <div
-                    className="h-full transition-all duration-500 rounded-full"
-                    style={{
-                      width: `${Math.min(100, (member.pointsSpent / 200) * 100)}%`,
-                      backgroundColor: member.statusColor,
-                    }}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-slate-600 pt-0.5">
-                  <span>~{member.inhaledMassUg} µg PM2.5</span>
-                  {member.avoidedMassUg > 0 ? (
-                    <span className="text-emerald-800 font-semibold">~{member.avoidedMassUg} µg avoided</span>
-                  ) : (
-                    <span>Unmitigated</span>
-                  )}
-                </div>
-              </div>
-            </div>
+            <MemberBudgetCard key={member.memberType} member={member} />
           ))}
         </div>
       </div>
@@ -449,78 +385,17 @@ export default function BreathBudgetTracker({
 
         {/* Add custom activity inline form */}
         {isAdding && (
-          <form
+          <AddActivityForm
+            name={newActName}
+            onNameChange={setNewActName}
+            duration={newActDuration}
+            onDurationChange={setNewActDuration}
+            hour={newActHour}
+            onHourChange={setNewActHour}
+            type={newActType}
+            onTypeChange={setNewActType}
             onSubmit={handleAddActivity}
-            className="p-5 rounded-2xl bg-slate-50 border border-slate-200 grid grid-cols-1 sm:grid-cols-5 gap-3.5 text-sm"
-          >
-            <div className="sm:col-span-2">
-              <label htmlFor="new-act-name" className="block text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 mb-1.5">
-                Activity Name
-              </label>
-              <input
-                id="new-act-name"
-                type="text"
-                placeholder="e.g. Afternoon School Run"
-                value={newActName}
-                onChange={(e) => setNewActName(e.target.value)}
-                className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="new-act-duration" className="block text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 mb-1.5">
-                Duration (Mins)
-              </label>
-              <input
-                id="new-act-duration"
-                type="number"
-                min="5"
-                max="300"
-                value={newActDuration}
-                onChange={(e) => setNewActDuration(parseInt(e.target.value) || 15)}
-                className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
-              />
-            </div>
-            <div>
-              <label htmlFor="new-act-type" className="block text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 mb-1.5">
-                Mode / Type
-              </label>
-              <select
-                id="new-act-type"
-                value={newActType}
-                onChange={(e) => setNewActType(e.target.value as 'walk' | 'two_wheeler' | 'metro')}
-                className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
-              >
-                <option value="walk">Walking / Jogging</option>
-                <option value="two_wheeler">Two-Wheeler / Bike</option>
-                <option value="metro">Metro / Closed Bus</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="new-act-hour" className="block text-xs font-semibold uppercase tracking-[0.04em] text-slate-700 mb-1.5">
-                Time Window
-              </label>
-              <select
-                id="new-act-hour"
-                value={newActHour}
-                onChange={(e) => setNewActHour(parseInt(e.target.value) || 13)}
-                className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
-              >
-                <option value="8">Morning (08:00 AM)</option>
-                <option value="13">Afternoon (01:00 PM - Cleaner)</option>
-                <option value="18">Evening (06:00 PM)</option>
-                <option value="21">Night (09:00 PM)</option>
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                className="w-full min-h-[44px] px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white rounded-xl font-semibold focus-visible:ring-2 focus-visible:ring-teal-700"
-              >
-                Add Activity
-              </button>
-            </div>
-          </form>
+          />
         )}
 
         <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
@@ -528,95 +403,16 @@ export default function BreathBudgetTracker({
             const act = activities.find((a) => a.id === item.id);
             if (!act) return null;
 
-            const isAfternoon = act.scheduledHour >= 12 && act.scheduledHour <= 15;
-
             return (
-              <div
+              <ActivityLedgerItem
                 key={item.id}
-                className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors"
-              >
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm sm:text-base text-slate-900">{item.name}</span>
-                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium">
-                      {item.durationMinutes} min • {item.timeOfDay} (PM2.5: <span className="font-mono">{item.appliedConcentrationUgM3} µg/m³</span>)
-                    </span>
-                    {item.mitigatedMassAvoidedUg > 0 && (
-                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        ~{item.mitigatedMassAvoidedUg} µg avoided
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm text-slate-600 max-w-[65ch]">{item.explanation}</p>
-
-                  {/* Interactivity mitigation toggles */}
-                  <div className="mt-2.5 flex items-center gap-3.5 text-xs">
-                    {!act.isIndoor && (
-                      <button
-                        type="button"
-                        onClick={() => handleToggleMask(act.id)}
-                        className={`underline font-medium transition-colors ${
-                          act.maskType === 'n95_kn95'
-                            ? 'text-emerald-800 hover:text-emerald-950'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        {act.maskType === 'n95_kn95' ? '✓ N95 Fitted (~75–85% off)' : '+ Put on N95 mask'}
-                      </button>
-                    )}
-
-                    {!act.isIndoor && (
-                      <button
-                        type="button"
-                        onClick={() => handleShiftToAfternoon(act.id)}
-                        className={`underline font-medium transition-colors ${
-                          isAfternoon
-                            ? 'text-teal-800 hover:text-teal-950'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        {isAfternoon
-                          ? '✓ Shifted to 1 PM (Lower Smog)'
-                          : 'Shift to 1 PM solar window'}
-                      </button>
-                    )}
-
-                    {act.isIndoor && (
-                      <button
-                        type="button"
-                        onClick={() => handleTogglePurifier(act.id)}
-                        className={`underline font-medium transition-colors ${
-                          act.hasPurifier
-                            ? 'text-emerald-800 hover:text-emerald-950'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        {act.hasPurifier ? '✓ HEPA Purifier Active' : '+ Turn on HEPA purifier'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 shrink-0 sm:self-center self-end">
-                  <div className="text-right">
-                    <span className="text-sm font-bold font-mono text-slate-900 block">
-                      {item.pointsSpent} pts
-                    </span>
-                    <span className="text-xs text-slate-600">
-                      ~{item.inhaledMassUg} µg intake
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(item.id)}
-                    aria-label={`Remove ${item.name}`}
-                    className="p-2 text-slate-500 hover:text-rose-600 transition-colors rounded-lg focus-visible:ring-2 focus-visible:ring-rose-500"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+                item={item}
+                activity={act}
+                onToggleMask={handleToggleMask}
+                onShiftToAfternoon={handleShiftToAfternoon}
+                onTogglePurifier={handleTogglePurifier}
+                onRemove={handleRemove}
+              />
             );
           })}
         </div>
