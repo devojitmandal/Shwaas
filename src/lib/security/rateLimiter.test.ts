@@ -28,4 +28,13 @@ describe('In-Memory Sliding Window Rate Limiter', () => {
     expect(blocked.remaining).toBe(0);
     expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
   });
+
+  it('caps tracked IP entries at MAX_TRACKED_IPS even under active burst load', () => {
+    for (let i = 0; i < 2050; i++) {
+      checkRateLimit(`10.0.${Math.floor(i / 256)}.${i % 256}`, { limit: 5, windowMs: 60000 });
+    }
+    // Re-checking earliest IP succeeds as a fresh entry because it was evicted under capacity pressure
+    const firstAgain = checkRateLimit('10.0.0.0', { limit: 5, windowMs: 60000 });
+    expect(firstAgain.remaining).toBe(4);
+  });
 });

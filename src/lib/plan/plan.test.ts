@@ -22,16 +22,22 @@ describe('Plan Schema & Deterministic Fallback Generator', () => {
     startTime: '2026-11-19T13:00',
     endTime: '2026-11-19T15:00',
     averageAqi: 120,
+    averagePm25: 66,
     category: 'Moderate' as const,
     advisory: 'Best afternoon window.',
+    reasoning: ['Forecast PM2.5 dips during midday mixing.'],
+    isSafe: false,
   };
 
   const mockWorstWindow = {
     startTime: '2026-11-19T06:00',
     endTime: '2026-11-19T09:00',
     averageAqi: 410,
+    averagePm25: 260,
     category: 'Severe' as const,
     advisory: 'Peak morning smog inversion.',
+    reasoning: ['Thermal inversion traps morning exhaust.'],
+    isSafe: false,
   };
 
   it('generates a structurally valid fallback plan compliant with planResponseSchema', () => {

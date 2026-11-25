@@ -3,6 +3,7 @@
 import { OutdoorWindow } from '@/lib/api/openMeteo';
 import { Sun, Moon, Clock, AlertTriangle } from 'lucide-react';
 import { getNaqiCategory } from '@/lib/aqi/naqi';
+import { formatTimeRange } from '@/lib/utils/timeFormat';
 
 interface TimeWindowsCardProps {
   bestWindow: OutdoorWindow;
@@ -17,15 +18,6 @@ export default function TimeWindowsCard({
   noSafeWindowAvailable = false,
   alertHeadline,
 }: TimeWindowsCardProps) {
-  const formatTimeRange = (start: string, end: string) => {
-    try {
-      const s = new Date(start).toLocaleTimeString([], { hour: 'numeric', hour12: true });
-      const e = new Date(end).toLocaleTimeString([], { hour: 'numeric', hour12: true });
-      return `${s} – ${e}`;
-    } catch {
-      return `${start.substring(11, 16)} – ${end.substring(11, 16)}`;
-    }
-  };
 
   const bestCategoryMeta = getNaqiCategory(bestWindow.averageAqi);
   const worstCategoryMeta = getNaqiCategory(worstWindow.averageAqi);

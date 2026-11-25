@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { HourlyAqiPoint } from '@/lib/api/openMeteo';
 import { getNaqiCategory } from '@/lib/aqi/naqi';
+import { formatHourLabel } from '@/lib/utils/timeFormat';
 
 interface HourlyChartProps {
   hourly: HourlyAqiPoint[];
@@ -28,14 +29,7 @@ export default function HourlyChart({
   // Calculate layout bounds
   const maxAqi = Math.max(300, ...hourly.map((h) => h.aqi));
 
-  const formatHour = (isoString: string) => {
-    try {
-      const date = new Date(isoString);
-      return date.toLocaleTimeString([], { hour: 'numeric', hour12: true });
-    } catch {
-      return isoString.split('T')[1]?.substring(0, 5) || isoString;
-    }
-  };
+  const formatHour = formatHourLabel;
 
   return (
     <section

@@ -56,34 +56,47 @@ export default function MyImpactDashboard({ exposure, cityName }: MyImpactDashbo
 
         <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200">
           <span className="text-xs font-semibold uppercase tracking-[0.04em] text-slate-600 block">
-            Actions optimized
+            Priority interventions
           </span>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-bold text-slate-900">3</span>
-            <span className="text-xs text-slate-600">routines</span>
+            <span className="text-2xl sm:text-3xl font-bold text-slate-900">
+              {exposure.recommendedInterventions.length}
+            </span>
+            <span className="text-xs text-slate-600">
+              {exposure.recommendedInterventions.length === 1 ? 'action' : 'actions'}
+            </span>
           </div>
-          <span className="text-xs text-slate-600 mt-1 block">Commute shift, N95, clean-room</span>
+          <span className="text-xs text-slate-600 mt-1 block">
+            {exposure.recommendedInterventions.length > 0
+              ? 'Flagged for your routine'
+              : 'Routine already optimized'}
+          </span>
         </div>
 
         <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200">
           <span className="text-xs font-semibold uppercase tracking-[0.04em] text-slate-600 block">
-            Lower-smog shift
+            Outdoor particulate intake
           </span>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-bold text-slate-900">~1.5</span>
-            <span className="text-xs text-slate-600">hours</span>
+            <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900">
+              {exposure.outdoorInhaledMassUg}
+            </span>
+            <span className="text-xs text-slate-600 font-mono">µg / day</span>
           </div>
-          <span className="text-xs text-slate-600 mt-1 block">Shifted away from morning trap</span>
+          <span className="text-xs text-slate-600 mt-1 block">From current commute profile</span>
         </div>
 
         <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200">
           <span className="text-xs font-semibold uppercase tracking-[0.04em] text-slate-600 block">
-            Indoor infiltration drop
+            Modeled indoor PM2.5
           </span>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-bold text-emerald-950">~72%</span>
+            <span className="text-2xl sm:text-3xl font-bold font-mono text-emerald-950">
+              {exposure.indoorConcentration}
+            </span>
+            <span className="text-xs text-slate-600 font-mono">µg/m³</span>
           </div>
-          <span className="text-xs text-slate-600 mt-1 block">In sealed bedroom with HEPA</span>
+          <span className="text-xs text-slate-600 mt-1 block">Steady-state room concentration</span>
         </div>
       </div>
 

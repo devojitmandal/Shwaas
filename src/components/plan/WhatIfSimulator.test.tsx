@@ -30,4 +30,24 @@ describe('WhatIfSimulator Interactive Component', () => {
     const statusBox = screen.getByRole('status');
     expect(statusBox.textContent).toContain('Inhaled Dose');
   });
+
+  it('reflects updated currentProfile baseline when profile changes in parent modal', () => {
+    const { rerender } = render(<WhatIfSimulator currentProfile={mockProfile} />);
+
+    const maskSelect = screen.getByLabelText(/Outdoor Mask/i) as HTMLSelectElement;
+    expect(maskSelect.value).toBe('none');
+
+    rerender(
+      <WhatIfSimulator
+        currentProfile={{
+          ...mockProfile,
+          maskType: 'n95_kn95',
+          hasPurifier: true,
+        }}
+      />
+    );
+
+    expect(maskSelect.value).toBe('n95_kn95');
+    expect((screen.getByLabelText(/Indoor Purifier/i) as HTMLSelectElement).value).toBe('yes');
+  });
 });

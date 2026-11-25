@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   HouseholdProfile,
   householdProfileSchema,
@@ -23,6 +23,13 @@ export default function HouseholdProfileModal({
   const [formData, setFormData] = useState<HouseholdProfile>(loadProfileFromStorage);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -54,7 +61,8 @@ export default function HouseholdProfileModal({
     saveProfileToStorage(result.data);
     onProfileUpdated(result.data);
     setSavedSuccess(true);
-    setTimeout(() => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => {
       onClose();
     }, 600);
   };

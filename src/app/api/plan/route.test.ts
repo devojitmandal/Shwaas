@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from './route';
 import { NextRequest } from 'next/server';
 import { DEFAULT_HOUSEHOLD_PROFILE } from '@/lib/validation/profileSchema';
+import { resetRateLimiter } from '@/lib/security/rateLimiter';
+import { generateFallbackPlan } from '@/lib/plan/planSchema';
+import { calculateDailyExposure, householdProfileToExposureProfile } from '@/lib/exposure/engine';
 
 // Hoisted mock for @google/genai in plan route tests
 const mockGenerateContent = vi.fn();
@@ -21,6 +24,7 @@ describe('Plan API Route Handler', () => {
   beforeEach(() => {
     delete process.env.GEMINI_API_KEY;
     mockGenerateContent.mockReset();
+    resetRateLimiter();
   });
 
   afterEach(() => {
@@ -231,5 +235,61 @@ describe('Plan API Route Handler', () => {
     expect(data.plan.disclaimer).toContain('चिकित्सीय सलाह नहीं है');
 
     consoleErrorSpy.mockRestore();
+  });
+
+  it('returns source gemini_personalized when Gemini produces valid planResponseSchema JSON', async () => {
+    process.env.GEMINI_API_KEY = 'valid_test_key';
+    const sampleExposure = calculateDailyExposure(
+      householdProfileToExposureProfile(DEFAULT_HOUSEHOLD_PROFILE, 280, 115)
+    );
+    const sampleValidPlan = generateFallbackPlan({
+      cityName: 'Delhi',
+      profile: DEFAULT_HOUSEHOLD_PROFILE,
+      exposure: sampleExposure,
+      bestWindow: {
+        ...validPayload.bestWindow,
+        averagePm25: 60,
+        reasoning: ['Afternoon wind'],
+        isSafe: false,
+      },
+      worstWindow: {
+        ...validPayload.worstWindow,
+        averagePm25: 190,
+        reasoning: ['Morning inversion'],
+        isSafe: false,
+      },
+    });
+    mockGenerateContent.mockResolvedValueOnce({ text: JSON.stringify(sampleValidPlan) });
+
+    const req = new NextRequest('http://localhost:3000/api/plan', {
+      method: 'POST',
+      body: JSON.stringify(validPayload),
+      headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '127.0.0.1' },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.source).toBe('gemini_personalized');
+    expect(data.plan.headline).toBe(sampleValidPlan.headline);
+  });
+
+  it('falls back safely when Gemini returns JSON that fails planResponseSchema validation', async () => {
+    process.env.GEMINI_API_KEY = 'valid_test_key';
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mockGenerateContent.mockResolvedValueOnce({ text: JSON.stringify({ headline: 'Partial invalid object' }) });
+
+    const req = new NextRequest('http://localhost:3000/api/plan', {
+      method: 'POST',
+      body: JSON.stringify(validPayload),
+      headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '127.0.0.1' },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.source).toBe('deterministic_engine_fallback');
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 });

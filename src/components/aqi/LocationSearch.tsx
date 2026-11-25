@@ -30,21 +30,27 @@ export default function LocationSearch({
   const [isOpen, setIsOpen] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchSeqRef = useRef(0);
 
-  // Debounced search
+  // Debounced search guarded against out-of-order responses
   useEffect(() => {
-    if (query.trim().length < 2) return;
+    const trimmed = query.trim();
+    if (trimmed.length < 2) return;
 
+    const seq = ++searchSeqRef.current;
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const results = await searchCities(query);
+        const results = await searchCities(trimmed);
+        if (seq !== searchSeqRef.current) return;
         setSuggestions(results);
         setIsOpen(true);
       } catch (err) {
         console.error(err);
       } finally {
-        setIsSearching(false);
+        if (seq === searchSeqRef.current) {
+          setIsSearching(false);
+        }
       }
     }, 300);
 

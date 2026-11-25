@@ -150,22 +150,30 @@ export function analyzeDynamicWindows(hourly: HourlyAqiPoint[]): WindowRecommend
     let sumAqi = 0;
     let sumPm25 = 0;
     let sumWind = 0;
+    let windCount = 0;
     let sumTemp = 0;
+    let tempCount = 0;
     let count = 0;
 
     for (let j = 0; j < windowSize; j++) {
       const pt = hourly[i + j];
       sumAqi += pt.aqi;
       sumPm25 += pt.pm25;
-      if (pt.windSpeedKmh !== undefined) sumWind += pt.windSpeedKmh;
-      if (pt.temperatureC !== undefined) sumTemp += pt.temperatureC;
+      if (pt.windSpeedKmh !== undefined) {
+        sumWind += pt.windSpeedKmh;
+        windCount++;
+      }
+      if (pt.temperatureC !== undefined) {
+        sumTemp += pt.temperatureC;
+        tempCount++;
+      }
       count++;
     }
 
     const avgAqi = Math.round(sumAqi / count);
     const avgPm25 = Math.round((sumPm25 / count) * 10) / 10;
-    const avgWind = count > 0 ? Math.round((sumWind / count) * 10) / 10 : undefined;
-    const avgTemp = count > 0 ? Math.round((sumTemp / count) * 10) / 10 : undefined;
+    const avgWind = windCount > 0 ? Math.round((sumWind / windCount) * 10) / 10 : undefined;
+    const avgTemp = tempCount > 0 ? Math.round((sumTemp / tempCount) * 10) / 10 : undefined;
 
     const catMeta = getNaqiCategory(avgAqi);
     const startPt = hourly[i];
@@ -390,6 +398,7 @@ export async function fetchAirQuality(
   const aqJson = await aqRes.json();
   let weatherJson: {
     hourly?: {
+      time?: string[];
       temperature_2m?: number[];
       wind_speed_10m?: number[];
       relative_humidity_2m?: number[];
@@ -409,9 +418,19 @@ export async function fetchAirQuality(
     console.warn('Secondary weather telemetry unavailable; proceeding with missing weather metrics.');
   }
 
-  const currentTemp = weatherJson.hourly?.temperature_2m?.[0];
-  const currentWind = weatherJson.hourly?.wind_speed_10m?.[0];
-  const currentHumidity = weatherJson.hourly?.relative_humidity_2m?.[0];
+  const currentTimePrefix =
+    typeof aqJson.current?.time === 'string' ? aqJson.current.time.slice(0, 13) : undefined;
+  const matchedHourIdx =
+    currentTimePrefix && Array.isArray(weatherJson.hourly?.time)
+      ? weatherJson.hourly.time.findIndex(
+          (t) => typeof t === 'string' && t.startsWith(currentTimePrefix)
+        )
+      : -1;
+  const currentWeatherIdx = matchedHourIdx >= 0 ? matchedHourIdx : 0;
+
+  const currentTemp = weatherJson.hourly?.temperature_2m?.[currentWeatherIdx];
+  const currentWind = weatherJson.hourly?.wind_speed_10m?.[currentWeatherIdx];
+  const currentHumidity = weatherJson.hourly?.relative_humidity_2m?.[currentWeatherIdx];
 
   const processed = processAirQualityData({
     current: {

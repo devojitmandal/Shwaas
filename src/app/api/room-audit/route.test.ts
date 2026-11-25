@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from './route';
 import { NextRequest } from 'next/server';
+import { resetRateLimiter } from '@/lib/security/rateLimiter';
 
 // Hoisted mock for @google/genai
 const mockVisionGenerateContent = vi.fn().mockResolvedValue({
@@ -36,6 +37,7 @@ describe('Room Audit API Route Handler', () => {
 
   beforeEach(() => {
     delete process.env.GEMINI_API_KEY;
+    resetRateLimiter();
   });
 
   afterEach(() => {

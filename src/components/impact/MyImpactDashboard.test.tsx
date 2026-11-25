@@ -5,23 +5,24 @@ import { ExposureResult } from '@/lib/exposure/engine';
 
 describe('MyImpactDashboard Component', () => {
   const mockExposure: ExposureResult = {
-    baselineDose: 450,
-    outdoorDose: 200,
-    indoorDose: 250,
-    outdoorFractionPercent: 44,
-    indoorFractionPercent: 56,
-    healthRiskTier: 'Severe Hazard',
-    naqiCategory: 'Very Poor',
     totalInhaledMassUg: 520,
     outdoorInhaledMassUg: 280,
     indoorInhaledMassUg: 240,
+    baselineDose: 450,
+    outdoorDose: 200,
+    indoorDose: 250,
+    indoorConcentration: 35,
     optimizedInhaledMassUg: 130,
     avoidedInhaledMassUg: 390,
     potentialReductionPercent: 75,
-    roomInfiltrationRatio: 0.55,
-    cleanAirDeliveryCadre: 250,
-    steadyStateIndoorPm25: 35,
-    disclaimer: 'Shwaas provides decision-support exposure models; this is not medical advice.',
+    naqiCategory: 'Very Poor',
+    healthRiskTier: 'Severe Hazard',
+    vulnerabilityAlert: true,
+    recommendedInterventions: [
+      'Wear a snug-fitting N95/FFP2 respirator outdoors.',
+    ],
+    uncertaintyRating: 'Configurable Estimate',
+    dataProvenance: 'Modeled via Open-Meteo ambient estimates.',
   };
 
   it('renders quantified particulate avoidance metrics and city name', () => {

@@ -15,17 +15,22 @@ interface WhatIfSimulatorProps {
   currentProfile: ExposureProfile;
 }
 
+type SimulatorOverrides = Partial<
+  Pick<
+    ExposureProfile,
+    'commuteType' | 'maskType' | 'hasPurifier' | 'ventilationStrategy' | 'timeOutdoorsHours'
+  >
+>;
+
 export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps) {
-  // Scenario simulation state
-  const [hypoCommute, setHypoCommute] = useState<CommuteType>(currentProfile.commuteType);
-  const [hypoMask, setHypoMask] = useState<MaskType>(currentProfile.maskType);
-  const [hypoPurifier, setHypoPurifier] = useState<boolean>(currentProfile.hasPurifier);
-  const [hypoVentilation, setHypoVentilation] = useState<VentilationStrategy>(
-    currentProfile.ventilationStrategy
-  );
-  const [hypoOutdoorHours, setHypoOutdoorHours] = useState<number>(
-    currentProfile.timeOutdoorsHours
-  );
+  // Store only explicit user overrides so parent profile updates propagate live
+  const [overrides, setOverrides] = useState<SimulatorOverrides>({});
+
+  const hypoCommute = overrides.commuteType ?? currentProfile.commuteType;
+  const hypoMask = overrides.maskType ?? currentProfile.maskType;
+  const hypoPurifier = overrides.hasPurifier ?? currentProfile.hasPurifier;
+  const hypoVentilation = overrides.ventilationStrategy ?? currentProfile.ventilationStrategy;
+  const hypoOutdoorHours = overrides.timeOutdoorsHours ?? currentProfile.timeOutdoorsHours;
 
   // Compute live what-if evaluation
   const result: WhatIfScenarioResult = evaluateWhatIf(currentProfile, {
@@ -87,42 +92,45 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
         <span className="text-xs font-semibold text-slate-600 mr-1 uppercase tracking-[0.04em]">Quick Scenarios:</span>
         <button
           type="button"
-          onClick={() => {
-            setHypoCommute('metro_bus_transit');
-            setHypoMask('n95_kn95');
-          }}
+          onClick={() =>
+            setOverrides((prev) => ({
+              ...prev,
+              commuteType: 'metro_bus_transit',
+              maskType: 'n95_kn95',
+            }))
+          }
           className="min-h-[44px] px-4 py-2 rounded-xl text-sm bg-slate-100 hover:bg-teal-50 hover:text-teal-900 font-medium text-slate-700 transition-colors border border-slate-200 focus-visible:ring-2 focus-visible:ring-teal-700"
         >
           Metro + N95 Respirator
         </button>
         <button
           type="button"
-          onClick={() => {
-            setHypoPurifier(true);
-            setHypoVentilation('sealed_windows');
-          }}
+          onClick={() =>
+            setOverrides((prev) => ({
+              ...prev,
+              hasPurifier: true,
+              ventilationStrategy: 'sealed_windows',
+            }))
+          }
           className="min-h-[44px] px-4 py-2 rounded-xl text-sm bg-slate-100 hover:bg-teal-50 hover:text-teal-900 font-medium text-slate-700 transition-colors border border-slate-200 focus-visible:ring-2 focus-visible:ring-teal-700"
         >
           Deploy Purifier + Seal Windows
         </button>
         <button
           type="button"
-          onClick={() => {
-            setHypoOutdoorHours(Math.max(0.5, currentProfile.timeOutdoorsHours * 0.5));
-          }}
+          onClick={() =>
+            setOverrides((prev) => ({
+              ...prev,
+              timeOutdoorsHours: Math.max(0.5, currentProfile.timeOutdoorsHours * 0.5),
+            }))
+          }
           className="min-h-[44px] px-4 py-2 rounded-xl text-sm bg-slate-100 hover:bg-teal-50 hover:text-teal-900 font-medium text-slate-700 transition-colors border border-slate-200 focus-visible:ring-2 focus-visible:ring-teal-700"
         >
           Cut Outdoor Time by 50%
         </button>
         <button
           type="button"
-          onClick={() => {
-            setHypoCommute(currentProfile.commuteType);
-            setHypoMask(currentProfile.maskType);
-            setHypoPurifier(currentProfile.hasPurifier);
-            setHypoVentilation(currentProfile.ventilationStrategy);
-            setHypoOutdoorHours(currentProfile.timeOutdoorsHours);
-          }}
+          onClick={() => setOverrides({})}
           className="min-h-[44px] px-3.5 py-2 rounded-xl text-sm text-slate-600 hover:text-slate-900 transition-colors ml-auto focus-visible:ring-2 focus-visible:ring-teal-700"
         >
           Reset to My Profile
@@ -138,7 +146,9 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
           <select
             id="sim-commute"
             value={hypoCommute}
-            onChange={(e) => setHypoCommute(e.target.value as CommuteType)}
+            onChange={(e) =>
+              setOverrides((prev) => ({ ...prev, commuteType: e.target.value as CommuteType }))
+            }
             className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
           >
             <option value="two_wheeler">Two-Wheeler</option>
@@ -157,7 +167,9 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
           <select
             id="sim-mask"
             value={hypoMask}
-            onChange={(e) => setHypoMask(e.target.value as MaskType)}
+            onChange={(e) =>
+              setOverrides((prev) => ({ ...prev, maskType: e.target.value as MaskType }))
+            }
             className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
           >
             <option value="none">No Mask</option>
@@ -173,7 +185,9 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
           <select
             id="sim-purifier"
             value={hypoPurifier ? 'yes' : 'no'}
-            onChange={(e) => setHypoPurifier(e.target.value === 'yes')}
+            onChange={(e) =>
+              setOverrides((prev) => ({ ...prev, hasPurifier: e.target.value === 'yes' }))
+            }
             className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
           >
             <option value="yes">Running Purifier / DIY Filter</option>
@@ -188,7 +202,12 @@ export default function WhatIfSimulator({ currentProfile }: WhatIfSimulatorProps
           <select
             id="sim-ventilation"
             value={hypoVentilation}
-            onChange={(e) => setHypoVentilation(e.target.value as VentilationStrategy)}
+            onChange={(e) =>
+              setOverrides((prev) => ({
+                ...prev,
+                ventilationStrategy: e.target.value as VentilationStrategy,
+              }))
+            }
             className="w-full min-h-[44px] px-3 py-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-700"
           >
             <option value="sealed_windows">Sealed Windows</option>

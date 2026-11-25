@@ -6,7 +6,39 @@ import {
   BREATHING_RATES,
   MASK_PENETRATION_FACTORS,
   calculateIndoorMassBalance,
+  resolveCommuteModifiers,
 } from './engine';
+
+export type BudgetStatusTier =
+  | 'Within Reference Range'
+  | 'Moderate Elevation'
+  | 'Severe Particle Burden';
+
+function classifyBudgetStatus(percentageOfReference: number): {
+  status: BudgetStatusTier;
+  statusColor: string;
+  statusTextColor: string;
+} {
+  if (percentageOfReference > 160) {
+    return {
+      status: 'Severe Particle Burden',
+      statusColor: '#7F1D1D',
+      statusTextColor: '#FFFFFF',
+    };
+  }
+  if (percentageOfReference > 100) {
+    return {
+      status: 'Moderate Elevation',
+      statusColor: '#D97706',
+      statusTextColor: '#0F172A',
+    };
+  }
+  return {
+    status: 'Within Reference Range',
+    statusColor: '#15803D',
+    statusTextColor: '#FFFFFF',
+  };
+}
 
 export const REFERENCE_DAILY_MASS_UG = 216; // 24h at 15 µg/m³ with 0.6 m³/h sedentary rate = 216 µg
 export const BUDGET_SCALE_POINTS = 100; // 100 relative points = 216 µg reference intake
@@ -128,10 +160,7 @@ export function calculateBreathBudget(params: CalculateBudgetParams): BreathBudg
       // Outdoor activity
       const fit = act.maskFit || 'typical_fit';
       const maskPen = MASK_PENETRATION_FACTORS[act.maskType || 'none']?.[fit] ?? 1.0;
-
-      let transitFactor = 1.0;
-      if (act.commuteType === 'car_ac') transitFactor = 0.40;
-      if (act.commuteType === 'metro_bus_transit') transitFactor = 0.50;
+      const { transitCabinFactor: transitFactor } = resolveCommuteModifiers(act.commuteType);
 
       const effectiveConc = ambientPm25 * maskPen * transitFactor;
       inhaledMassUg = hours * effectiveConc * breathingRate;
@@ -174,19 +203,9 @@ export function calculateBreathBudget(params: CalculateBudgetParams): BreathBudg
   const remainingPoints = Math.max(0, BUDGET_SCALE_POINTS - netPointsSpent);
   const percentageOfReferenceIntake = Math.round((netPointsSpent / BUDGET_SCALE_POINTS) * 100);
 
-  let budgetStatus: BreathBudgetResult['budgetStatus'] = 'Within Reference Range';
-  let statusColor = '#15803D'; // Green
-  let statusTextColor = '#FFFFFF';
-
-  if (percentageOfReferenceIntake > 160) {
-    budgetStatus = 'Severe Particle Burden';
-    statusColor = '#7F1D1D'; // Dark Red
-    statusTextColor = '#FFFFFF';
-  } else if (percentageOfReferenceIntake > 100) {
-    budgetStatus = 'Moderate Elevation';
-    statusColor = '#D97706'; // Amber
-    statusTextColor = '#0F172A';
-  }
+  const { status: budgetStatus, statusColor, statusTextColor } = classifyBudgetStatus(
+    percentageOfReferenceIntake
+  );
 
   const calculationAssumptions = [
     'Relative planning index (100 points = equivalent particulate intake of an entire 24h day at WHO 15 µg/m³ guideline).',
@@ -360,19 +379,7 @@ export function calculateMemberBudget(params: MemberBudgetParams): MemberBudgetR
   const remainingPoints = Math.max(0, 100 - pointsSpent);
   const percentageOfBudget = pointsSpent;
 
-  let status: MemberBudgetResult['status'] = 'Within Reference Range';
-  let statusColor = '#15803D';
-  let statusTextColor = '#FFFFFF';
-
-  if (pointsSpent > 160) {
-    status = 'Severe Particle Burden';
-    statusColor = '#7F1D1D';
-    statusTextColor = '#FFFFFF';
-  } else if (pointsSpent > 100) {
-    status = 'Moderate Elevation';
-    statusColor = '#D97706';
-    statusTextColor = '#0F172A';
-  }
+  const { status, statusColor, statusTextColor } = classifyBudgetStatus(pointsSpent);
 
   return {
     memberType,

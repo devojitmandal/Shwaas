@@ -1,10 +1,11 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { NaqiCategory, getNaqiCategory } from '@/lib/aqi/naqi';
 import { OutdoorWindow } from '@/lib/api/openMeteo';
 import { Download, Check, MessageCircle, Copy } from 'lucide-react';
 import { renderWhatsAppCardCanvas } from '@/lib/share/canvasCardRenderer';
+import { formatTimeRange } from '@/lib/utils/timeFormat';
 
 interface WhatsAppShareCardProps {
   cityName: string;
@@ -33,21 +34,20 @@ export default function WhatsAppShareCard({
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const generateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      if (generateTimerRef.current) clearTimeout(generateTimerRef.current);
+    };
+  }, []);
 
   const categoryMeta = getNaqiCategory(aqi);
 
-  const formatWindow = (start: string, end: string) => {
-    try {
-      const s = new Date(start).toLocaleTimeString([], { hour: 'numeric', hour12: true });
-      const e = new Date(end).toLocaleTimeString([], { hour: 'numeric', hour12: true });
-      return `${s} – ${e}`;
-    } catch {
-      return `${start.substring(11, 16)} – ${end.substring(11, 16)}`;
-    }
-  };
-
-  const bestRange = formatWindow(bestWindow.startTime, bestWindow.endTime);
-  const worstRange = formatWindow(worstWindow.startTime, worstWindow.endTime);
+  const bestRange = formatTimeRange(bestWindow.startTime, bestWindow.endTime);
+  const worstRange = formatTimeRange(worstWindow.startTime, worstWindow.endTime);
 
   const shareSummaryText = `🌫️ *Shwaas (श्वास) Smog Protocol — ${cityName}*
 🚨 *National AQI:* ${aqi} (${category}) | PM2.5: ${pm25} µg/m³
@@ -90,7 +90,8 @@ ${
 
   const handleDownloadImage = () => {
     setIsGenerating(true);
-    setTimeout(() => {
+    if (generateTimerRef.current) clearTimeout(generateTimerRef.current);
+    generateTimerRef.current = setTimeout(() => {
       const dataUrl = generateCanvasImage();
       if (!dataUrl) {
         setIsGenerating(false);
@@ -130,10 +131,14 @@ ${
   };
 
   const handleCopyText = async () => {
-    if (navigator.clipboard) {
+    if (!navigator.clipboard) return;
+    try {
       await navigator.clipboard.writeText(shareSummaryText);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.warn('Clipboard write failed:', err);
     }
   };
 

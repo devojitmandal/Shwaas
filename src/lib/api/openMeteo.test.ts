@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   processAirQualityData,
   analyzeDynamicWindows,
@@ -6,6 +6,8 @@ import {
   MAX_CACHE_ENTRIES,
   clearOpenMeteoCache,
   getOpenMeteoCacheSize,
+  fetchAirQuality,
+  searchCities,
 } from './openMeteo';
 
 describe('Multi-Factor Dynamic Window Analysis Engine', () => {
@@ -81,7 +83,12 @@ describe('Multi-Factor Dynamic Window Analysis Engine', () => {
     expect(result.noSafeWindowAvailable).toBe(false);
   });
 
-  it('gracefully degrades when weather arrays (wind/temp) are missing or empty', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    clearOpenMeteoCache();
+  });
+
+  it('gracefully degrades when weather arrays (wind/temp) are missing or empty without inventing 0s', () => {
     const pointsWithoutWeather: HourlyAqiPoint[] = [
       { time: '2026-11-19T12:00', pm25: 60, pm10: 100, aqi: 100, category: 'Satisfactory' },
       { time: '2026-11-19T13:00', pm25: 50, pm10: 90, aqi: 90, category: 'Satisfactory' },
@@ -90,12 +97,95 @@ describe('Multi-Factor Dynamic Window Analysis Engine', () => {
     const result = analyzeDynamicWindows(pointsWithoutWeather);
     expect(result.bestAvailableWindow.averageAqi).toBeLessThanOrEqual(100);
     expect(result.bestAvailableWindow.isSafe).toBe(true);
+    expect(result.bestAvailableWindow.windSpeedKmh).toBeUndefined();
+    expect(result.bestAvailableWindow.temperatureC).toBeUndefined();
+    expect(result.bestAvailableWindow.reasoning.join(' ')).not.toContain('Stagnant surface air');
+    expect(result.bestAvailableWindow.reasoning.join(' ')).not.toContain('Cooler ground temperatures');
   });
 
-  it('bounds in-memory cache capacity and evicts oldest items when exceeding limit', () => {
-    // Verify constant is exported and positive
-    expect(MAX_CACHE_ENTRIES).toBe(200);
+  it('averages only defined weather readings when a window has partial telemetry', () => {
+    const partialWeather: HourlyAqiPoint[] = [
+      { time: '2026-11-19T12:00', pm25: 60, pm10: 100, aqi: 100, category: 'Satisfactory', windSpeedKmh: 10 },
+      { time: '2026-11-19T13:00', pm25: 50, pm10: 90, aqi: 90, category: 'Satisfactory' },
+    ];
+
+    const result = analyzeDynamicWindows(partialWeather);
+    expect(result.bestAvailableWindow.windSpeedKmh).toBe(10);
+    expect(result.bestAvailableWindow.temperatureC).toBeUndefined();
+  });
+
+  it('aligns current weather metrics with the current air-quality timestamp rather than midnight index 0', async () => {
+    const times = Array.from({ length: 24 }, (_, i) => `2026-11-19T${String(i).padStart(2, '0')}:00`);
+    const temps = times.map((_, i) => (i === 14 ? 27.5 : 11.0));
+    const winds = times.map((_, i) => (i === 14 ? 9.2 : 1.1));
+    const humidities = times.map((_, i) => (i === 14 ? 38 : 85));
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('air-quality-api')) {
+          return new Response(
+            JSON.stringify({
+              current: { time: '2026-11-19T14:15', pm2_5: 55, pm10: 95 },
+              hourly: { time: times, pm2_5: times.map(() => 60), pm10: times.map(() => 100) },
+            }),
+            { status: 200 }
+          );
+        }
+        return new Response(
+          JSON.stringify({
+            hourly: {
+              time: times,
+              temperature_2m: temps,
+              wind_speed_10m: winds,
+              relative_humidity_2m: humidities,
+            },
+          }),
+          { status: 200 }
+        );
+      })
+    );
+
+    const processed = await fetchAirQuality(28.65, 77.23, 'Delhi');
+    expect(processed.current.temperatureC).toBe(27.5);
+    expect(processed.current.windSpeedKmh).toBe(9.2);
+    expect(processed.current.relativeHumidity).toBe(38);
+  });
+
+  it('evicts the least-recently-used entry when cache exceeds MAX_CACHE_ENTRIES', async () => {
     clearOpenMeteoCache();
-    expect(getOpenMeteoCacheSize()).toBe(0);
+    let fetchCount = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        fetchCount++;
+        return new Response(
+          JSON.stringify({
+            results: [{ id: fetchCount, name: `City${fetchCount}`, latitude: 28, longitude: 77 }],
+          }),
+          { status: 200 }
+        );
+      })
+    );
+
+    for (let i = 0; i < MAX_CACHE_ENTRIES; i++) {
+      await searchCities(`city-query-${i}`);
+    }
+    expect(getOpenMeteoCacheSize()).toBe(MAX_CACHE_ENTRIES);
+
+    // Touch entry 0 so entry 1 becomes least recently used
+    await searchCities('city-query-0');
+    expect(fetchCount).toBe(MAX_CACHE_ENTRIES); // served from cache
+
+    // Insert one more entry -> entry 1 should be evicted
+    await searchCities('city-query-overflow');
+    expect(getOpenMeteoCacheSize()).toBe(MAX_CACHE_ENTRIES);
+
+    // Entry 0 still cached, entry 1 triggers a fresh fetch
+    await searchCities('city-query-0');
+    expect(fetchCount).toBe(MAX_CACHE_ENTRIES + 1);
+    await searchCities('city-query-1');
+    expect(fetchCount).toBe(MAX_CACHE_ENTRIES + 2);
   });
 });

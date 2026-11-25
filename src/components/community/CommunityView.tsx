@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Printer, Share2, Users, Building, GraduationCap, MapPin, Check } from 'lucide-react';
 import {
   CommunityProtocolId,
@@ -16,6 +16,13 @@ interface CommunityViewProps {
 export default function CommunityView({ cityName, currentAqi }: CommunityViewProps) {
   const [activeTab, setActiveTab] = useState<CommunityProtocolId>('rwa');
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   const handlePrint = () => {
     window.print();
@@ -23,11 +30,14 @@ export default function CommunityView({ cityName, currentAqi }: CommunityViewPro
 
   const handleShare = async () => {
     const text = formatCommunityShareText(cityName, currentAqi);
-
-    if (navigator.clipboard) {
+    if (!navigator.clipboard) return;
+    try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.warn('Clipboard write failed:', err);
     }
   };
 

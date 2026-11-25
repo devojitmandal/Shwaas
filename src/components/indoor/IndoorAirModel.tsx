@@ -13,15 +13,20 @@ import { Home, AlertCircle, Sliders, ShieldCheck } from 'lucide-react';
 
 interface IndoorAirModelProps {
   outdoorPm25: number;
+  initialHasPurifier?: boolean;
 }
 
-export default function IndoorAirModel({ outdoorPm25 }: IndoorAirModelProps) {
+export default function IndoorAirModel({
+  outdoorPm25,
+  initialHasPurifier = true,
+}: IndoorAirModelProps) {
   const [roomArea, setRoomArea] = useState<number>(DEFAULT_ROOM_AREA_SQM);
   const ceilingHeight = DEFAULT_CEILING_HEIGHT_M;
   const [ventilation, setVentilation] = useState<VentilationStrategy>('sealed_windows');
   const [cookingFuel, setCookingFuel] = useState<CookingFuel>('lpg_electric');
-  const [hasPurifier, setHasPurifier] = useState<boolean>(true);
+  const [purifierOverride, setPurifierOverride] = useState<boolean | null>(null);
   const [cadr, setCadr] = useState<number>(DEFAULT_PURIFIER_CADR_M3H);
+  const hasPurifier = purifierOverride ?? initialHasPurifier;
   const indoorHours = 20;
 
   const balance = calculateIndoorMassBalance(
@@ -159,11 +164,11 @@ export default function IndoorAirModel({ outdoorPm25 }: IndoorAirModelProps) {
               id="indoor-purifier"
               value={hasPurifier ? cadr : 0}
               onChange={(e) => {
-                const val = parseInt(e.target.value);
+                const val = parseInt(e.target.value, 10);
                 if (val === 0) {
-                  setHasPurifier(false);
+                  setPurifierOverride(false);
                 } else {
-                  setHasPurifier(true);
+                  setPurifierOverride(true);
                   setCadr(val);
                 }
               }}

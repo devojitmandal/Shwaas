@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import AppShell from '@/components/layout/AppShell';
 import { AppView } from '@/components/layout/Sidebar';
@@ -10,7 +10,6 @@ import HouseholdProfileModal from '@/components/profile/HouseholdProfileModal';
 import WhatIfSimulator from '@/components/plan/WhatIfSimulator';
 import TodaysPlanView from '@/components/plan/TodaysPlanView';
 import BreathBudgetTracker from '@/components/budget/BreathBudgetTracker';
-import CommunityModeModal from '@/components/community/CommunityModeModal';
 import CommunityView from '@/components/community/CommunityView';
 import IndoorAirModel from '@/components/indoor/IndoorAirModel';
 import MyImpactDashboard from '@/components/impact/MyImpactDashboard';
@@ -27,7 +26,11 @@ import {
   loadProfileFromStorage,
 } from '@/lib/validation/profileSchema';
 import { PlanResponse, PlanSource, generateFallbackPlan } from '@/lib/plan/planSchema';
-import { calculateDailyExposure, ExposureResult } from '@/lib/exposure/engine';
+import {
+  calculateDailyExposure,
+  ExposureResult,
+  householdProfileToExposureProfile,
+} from '@/lib/exposure/engine';
 import { calculateHouseholdPerPersonBudgets } from '@/lib/exposure/breathBudget';
 import { SupportedLanguage } from '@/lib/i18n/translations';
 import {
@@ -35,32 +38,35 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
+function LoadingCard({ message, compact = false }: { message: string; compact?: boolean }) {
+  return (
+    <div
+      className={`${
+        compact ? 'p-12' : 'p-16'
+      } text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-2.5`}
+    >
+      <Loader2
+        className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} text-teal-800 animate-spin`}
+        aria-hidden="true"
+      />
+      <p className={`${compact ? 'text-xs' : 'text-base'} font-medium text-slate-600`}>
+        {message}
+      </p>
+    </div>
+  );
+}
+
 // Lazy-load heavy views with next/dynamic
 const HourlyChart = dynamic(() => import('@/components/aqi/HourlyChart'), {
-  loading: () => (
-    <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-2">
-      <Loader2 className="w-6 h-6 text-teal-800 animate-spin" />
-      <span className="text-xs font-medium text-slate-500">Loading 24h atmospheric chart...</span>
-    </div>
-  ),
+  loading: () => <LoadingCard message="Loading 24h atmospheric chart..." compact />,
 });
 
 const PhotoRoomAudit = dynamic(() => import('@/components/indoor/PhotoRoomAudit'), {
-  loading: () => (
-    <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-2">
-      <Loader2 className="w-6 h-6 text-teal-800 animate-spin" />
-      <span className="text-xs font-medium text-slate-500">Loading room photo audit...</span>
-    </div>
-  ),
+  loading: () => <LoadingCard message="Loading room photo audit..." compact />,
 });
 
 const WhatsAppShareCard = dynamic(() => import('@/components/share/WhatsAppShareCard'), {
-  loading: () => (
-    <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center space-y-2">
-      <Loader2 className="w-6 h-6 text-teal-800 animate-spin" />
-      <span className="text-xs font-medium text-slate-500">Loading share card generator...</span>
-    </div>
-  ),
+  loading: () => <LoadingCard message="Loading share card generator..." compact />,
 });
 
 const VALID_VIEWS: AppView[] = [
@@ -100,13 +106,17 @@ export default function Home() {
   // Household Profile state
   const [profile, setProfile] = useState<HouseholdProfile>(DEFAULT_HOUSEHOLD_PROFILE);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isCommunityModalOpen, setIsCommunityModalOpen] = useState(false);
 
   // Plan & Exposure state
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [exposure, setExposure] = useState<ExposureResult | null>(null);
   const [planSource, setPlanSource] = useState<PlanSource>('deterministic_engine_fallback');
   const [isPlanLoading, setIsPlanLoading] = useState(false);
+
+  // Async race-condition & abort guards
+  const airRequestSeqRef = useRef(0);
+  const planRequestSeqRef = useRef(0);
+  const planAbortRef = useRef<AbortController | null>(null);
 
   // Sync hash on client mount and listen to hashchange
   useEffect(() => {
@@ -143,18 +153,23 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Fetch air quality data when location changes
+  // Fetch air quality data when location changes (guarded against out-of-order responses)
   const loadAirQuality = useCallback(async (lat: number, lon: number, name: string) => {
+    const requestSeq = ++airRequestSeqRef.current;
     setIsAqiLoading(true);
     setAqiError(null);
     try {
       const data = await fetchAirQuality(lat, lon, name);
+      if (requestSeq !== airRequestSeqRef.current) return;
       setAirData(data);
     } catch (err: unknown) {
+      if (requestSeq !== airRequestSeqRef.current) return;
       console.error(err);
       setAqiError('Unable to load live atmospheric data from Open-Meteo. Please try another city.');
     } finally {
-      setIsAqiLoading(false);
+      if (requestSeq === airRequestSeqRef.current) {
+        setIsAqiLoading(false);
+      }
     }
   }, []);
 
@@ -165,22 +180,19 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [currentLocation, loadAirQuality]);
 
-  // Request or compute plan when air data or profile updates
+  // Request or compute plan when air data or profile updates (aborting stale in-flight requests)
   const loadPlan = useCallback(
     async (currentAir: ProcessedAirQuality, currentProf: HouseholdProfile, currentLang: SupportedLanguage = 'en') => {
+      const requestSeq = ++planRequestSeqRef.current;
+      planAbortRef.current?.abort();
+      const controller = new AbortController();
+      planAbortRef.current = controller;
+
       setIsPlanLoading(true);
 
-      const localExposure = calculateDailyExposure({
-        ...currentProf,
-        currentAqi: currentAir.current.aqi,
-        pm25Concentration: currentAir.current.pm25,
-        timeOutdoorsHours: currentProf.outdoorHours,
-        indoorHours: Math.max(0, 24 - currentProf.outdoorHours),
-        vulnerableMembers: {
-          hasKids: currentProf.numKids > 0,
-          hasElderly: currentProf.numElderly > 0,
-        },
-      });
+      const localExposure = calculateDailyExposure(
+        householdProfileToExposureProfile(currentProf, currentAir.current.aqi, currentAir.current.pm25)
+      );
       setExposure(localExposure);
 
       const applyFallback = () => {
@@ -202,6 +214,7 @@ export default function Home() {
         const res = await fetch('/api/plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify({
             profile: currentProf,
             aqi: currentAir.current.aqi,
@@ -215,8 +228,11 @@ export default function Home() {
           }),
         });
 
+        if (requestSeq !== planRequestSeqRef.current) return;
+
         if (res.ok) {
           const json = await res.json();
+          if (requestSeq !== planRequestSeqRef.current) return;
           setPlan(json.plan);
           setExposure(json.exposure);
           setPlanSource(
@@ -226,14 +242,23 @@ export default function Home() {
           applyFallback();
         }
       } catch (err) {
+        if (controller.signal.aborted || requestSeq !== planRequestSeqRef.current) return;
         console.error('Error fetching plan, using local deterministic fallback:', err);
         applyFallback();
       } finally {
-        setIsPlanLoading(false);
+        if (requestSeq === planRequestSeqRef.current) {
+          setIsPlanLoading(false);
+        }
       }
     },
     []
   );
+
+  useEffect(() => {
+    return () => {
+      planAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!airData) return;
@@ -302,12 +327,9 @@ export default function Home() {
 
       {/* Loading Skeleton */}
       {isAqiLoading && !airData ? (
-        <div className="p-16 text-center bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center justify-center space-y-3">
-          <Loader2 className="w-8 h-8 text-teal-800 animate-spin" aria-hidden="true" />
-          <p className="text-base font-medium text-slate-700">
-            Fetching atmospheric telemetry and computing CPCB NAQI for {currentLocation.name}...
-          </p>
-        </div>
+        <LoadingCard
+          message={`Fetching atmospheric telemetry and computing CPCB NAQI for ${currentLocation.name}...`}
+        />
       ) : airData ? (
         <div className="w-full space-y-8">
           {/* VIEW 1: TODAY */}
@@ -345,17 +367,11 @@ export default function Home() {
 
               <div className="md:col-span-12">
                 <WhatIfSimulator
-                  currentProfile={{
-                    ...profile,
-                    currentAqi: airData.current.aqi,
-                    pm25Concentration: airData.current.pm25,
-                    timeOutdoorsHours: profile.outdoorHours,
-                    indoorHours: Math.max(0, 24 - profile.outdoorHours),
-                    vulnerableMembers: {
-                      hasKids: profile.numKids > 0,
-                      hasElderly: profile.numElderly > 0,
-                    },
-                  }}
+                  currentProfile={householdProfileToExposureProfile(
+                    profile,
+                    airData.current.aqi,
+                    airData.current.pm25
+                  )}
                 />
               </div>
             </div>
@@ -370,15 +386,10 @@ export default function Home() {
                     plan={plan}
                     isLoading={isPlanLoading}
                     source={planSource}
-                    onRefresh={() => airData && loadPlan(airData, profile)}
+                    onRefresh={() => airData && loadPlan(airData, profile, language)}
                   />
                 ) : isPlanLoading ? (
-                  <div className="p-16 text-center bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center justify-center space-y-3">
-                    <Loader2 className="w-8 h-8 text-teal-800 animate-spin" aria-hidden="true" />
-                    <p className="text-base font-medium text-slate-700">
-                      Generating tailored smog defense protocol...
-                    </p>
-                  </div>
+                  <LoadingCard message="Generating tailored smog defense protocol..." />
                 ) : null}
               </div>
             </div>
@@ -388,7 +399,10 @@ export default function Home() {
           {activeView === 'room' && (
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
               <div className="md:col-span-12">
-                <IndoorAirModel outdoorPm25={airData.current.pm25} />
+                <IndoorAirModel
+                  outdoorPm25={airData.current.pm25}
+                  initialHasPurifier={profile.hasPurifier}
+                />
               </div>
               <div className="md:col-span-12">
                 <PhotoRoomAudit outdoorPm25={airData.current.pm25} />
@@ -477,14 +491,6 @@ export default function Home() {
           }}
         />
       )}
-
-      {/* Optional Community Checklist Modal (kept for print / quick view) */}
-      <CommunityModeModal
-        isOpen={isCommunityModalOpen}
-        onClose={() => setIsCommunityModalOpen(false)}
-        cityName={currentLocation.name}
-        currentAqi={airData?.current.aqi ?? 200}
-      />
     </AppShell>
   );
 }

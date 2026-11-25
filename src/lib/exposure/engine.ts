@@ -98,6 +98,84 @@ export interface IndoorMassBalanceResult {
   label: string;
 }
 
+export const DEFAULT_ROOM_VOLUME_M3 = DEFAULT_ROOM_AREA_SQM * DEFAULT_CEILING_HEIGHT_M;
+
+/**
+ * Computes steady-state indoor PM2.5 concentration (µg/m³) via single-zone mass balance:
+ * C_in = (P * AER * C_out + S / V) / (AER + k_dep + CADR / V)
+ */
+export function computeSteadyStateIndoorConcentration(
+  cOut: number,
+  aer: number,
+  sourceEmissionUgH: number,
+  cadrM3H = 0,
+  roomVolumeM3 = DEFAULT_ROOM_VOLUME_M3
+): number {
+  const safeVolume = Math.max(1, roomVolumeM3);
+  const totalRemoval = aer + SURFACE_DEPOSITION_RATE_PER_H + cadrM3H / safeVolume;
+  const numerator =
+    PARTICLE_PENETRATION_EFFICIENCY * aer * Math.max(0, cOut) + sourceEmissionUgH / safeVolume;
+  return Math.max(1, numerator / totalRemoval);
+}
+
+/**
+ * Resolves standard breathing rate (m³/h) and cabin filtration multiplier for a commute mode.
+ */
+export function resolveCommuteModifiers(commuteType?: CommuteType): {
+  breathingRate: number;
+  transitCabinFactor: number;
+} {
+  let breathingRate = BREATHING_RATES.moderate_commute;
+  if (commuteType === 'bicycle') {
+    breathingRate = BREATHING_RATES.strenuous_exercise;
+  } else if (commuteType === 'car_ac' || commuteType === 'metro_bus_transit') {
+    breathingRate = BREATHING_RATES.light_transit;
+  }
+
+  let transitCabinFactor = 1.0;
+  if (commuteType === 'car_ac') {
+    transitCabinFactor = 0.40; // Recirculating cabin filter
+  } else if (commuteType === 'metro_bus_transit') {
+    transitCabinFactor = 0.50; // Mechanically filtered air
+  }
+
+  return { breathingRate, transitCabinFactor };
+}
+
+/**
+ * Adapts a stored HouseholdProfile + ambient readings into an ExposureProfile for deterministic calculation.
+ */
+export function householdProfileToExposureProfile(
+  profile: {
+    numKids: number;
+    numElderly: number;
+    commuteType: CommuteType;
+    cookingFuel: CookingFuel;
+    hasPurifier: boolean;
+    maskType: MaskType;
+    outdoorHours: number;
+    ventilationStrategy: VentilationStrategy;
+  },
+  currentAqi: number,
+  pm25Concentration: number
+): ExposureProfile {
+  return {
+    currentAqi,
+    pm25Concentration,
+    timeOutdoorsHours: profile.outdoorHours,
+    commuteType: profile.commuteType,
+    maskType: profile.maskType,
+    indoorHours: Math.max(0, 24 - profile.outdoorHours),
+    hasPurifier: profile.hasPurifier,
+    cookingFuel: profile.cookingFuel,
+    ventilationStrategy: profile.ventilationStrategy,
+    vulnerableMembers: {
+      hasKids: profile.numKids > 0,
+      hasElderly: profile.numElderly > 0,
+    },
+  };
+}
+
 /**
  * Single-zone steady-state indoor mass-balance model for fine particulate matter (PM2.5).
  *
@@ -133,22 +211,15 @@ export function calculateIndoorMassBalance(
   const volume = roomArea * ceilingHeight; // V in m³
 
   const aer = AIR_EXCHANGE_RATES[params.ventilationStrategy] ?? 0.65;
-  const p = PARTICLE_PENETRATION_EFFICIENCY;
   const kDep = SURFACE_DEPOSITION_RATE_PER_H;
   const sourceEmission = INDOOR_SOURCE_EMISSIONS[params.cookingFuel] ?? 150;
 
   // CADR removal rate in h⁻¹
   const cadr = params.hasPurifier ? params.cadrM3H || DEFAULT_PURIFIER_CADR_M3H : 0;
-  const cadrRemovalRate = cadr / volume;
+  const totalRemoval = aer + kDep + cadr / volume;
 
-  // Steady-state indoor concentration with active controls
-  const totalRemoval = aer + kDep + cadrRemovalRate;
-  const numerator = p * aer * Math.max(0, cOut) + sourceEmission / volume;
-  const cInMitigated = Math.max(1, numerator / totalRemoval);
-
-  // Counterfactual baseline without purifier
-  const unmitigatedRemoval = aer + kDep;
-  const cInUnmitigated = Math.max(1, numerator / unmitigatedRemoval);
+  const cInMitigated = computeSteadyStateIndoorConcentration(cOut, aer, sourceEmission, cadr, volume);
+  const cInUnmitigated = computeSteadyStateIndoorConcentration(cOut, aer, sourceEmission, 0, volume);
 
   // Difference in inhaled indoor mass
   const sedentaryBreathing = BREATHING_RATES.sedentary_indoor;
@@ -241,21 +312,10 @@ export function calculateDailyExposure(profile: ExposureProfile): ExposureResult
   const fit = profile.maskFit || 'typical_fit';
   const maskPen = MASK_PENETRATION_FACTORS[profile.maskType || 'none']?.[fit] ?? 1.0;
 
-  // Commute breathing rate
-  let outdoorBreathingRate = BREATHING_RATES.moderate_commute;
-  if (profile.commuteType === 'bicycle') {
-    outdoorBreathingRate = BREATHING_RATES.strenuous_exercise;
-  } else if (profile.commuteType === 'car_ac' || profile.commuteType === 'metro_bus_transit') {
-    outdoorBreathingRate = BREATHING_RATES.light_transit;
-  }
-
-  // Cabin filtration for AC vehicle / closed transit
-  let transitCabinFactor = 1.0;
-  if (profile.commuteType === 'car_ac') {
-    transitCabinFactor = 0.40; // Recirculating cabin filter
-  } else if (profile.commuteType === 'metro_bus_transit') {
-    transitCabinFactor = 0.50; // Mechanically filtered air
-  }
+  // Commute breathing rate and cabin filtration
+  const { breathingRate: outdoorBreathingRate, transitCabinFactor } = resolveCommuteModifiers(
+    profile.commuteType
+  );
 
   const effectiveOutdoorConc = cOut * maskPen * transitCabinFactor;
   const outdoorInhaledMassUg = outdoorHours * effectiveOutdoorConc * outdoorBreathingRate;

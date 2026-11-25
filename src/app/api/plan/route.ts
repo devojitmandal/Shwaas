@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { GoogleGenAI } from '@google/genai';
 import { householdProfileSchema } from '@/lib/validation/profileSchema';
-import { calculateDailyExposure } from '@/lib/exposure/engine';
-import { checkRateLimit } from '@/lib/security/rateLimiter';
+import { calculateDailyExposure, householdProfileToExposureProfile } from '@/lib/exposure/engine';
 import { planResponseSchema, generateFallbackPlan } from '@/lib/plan/planSchema';
 import { OutdoorWindow } from '@/lib/api/openMeteo';
+import {
+  parseGuardedJsonRequest,
+  hasConfiguredGeminiKey,
+  callGeminiWithTimeout,
+  logSanitizedGeminiError,
+} from '@/lib/api/routeGuards';
 
 // Server-side request payload schema
 const planRequestSchema = z.object({
@@ -38,51 +42,22 @@ const planRequestSchema = z.object({
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
-  // 0. Payload Size Cap (64 KB)
-  const contentLength = req.headers.get('content-length');
-  if (contentLength && parseInt(contentLength, 10) > 65536) {
-    return NextResponse.json({ error: 'Payload too large (max 64KB).' }, { status: 413 });
+  const guarded = await parseGuardedJsonRequest(req, planRequestSchema, {
+    maxBytes: 65536,
+    payloadTooLargeMessage: 'Payload too large (max 64KB).',
+    rateLimit: {
+      limit: 15,
+      windowMs: 60 * 1000,
+      message: 'Too many plan requests. Please wait a moment before recalculating.',
+    },
+    malformedJsonMessage: 'Invalid JSON request body.',
+  });
+
+  if (!guarded.ok) {
+    return guarded.response;
   }
 
-  // 1. IP Rate Limiting (15 requests/minute)
-  const clientIp =
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    req.headers.get('x-real-ip') ||
-    '127.0.0.1';
-
-  const rateLimit = checkRateLimit(clientIp, { limit: 15, windowMs: 60 * 1000 });
-  if (!rateLimit.allowed) {
-    return NextResponse.json(
-      {
-        error: 'Too many plan requests. Please wait a moment before recalculating.',
-        retryAfterSeconds: rateLimit.retryAfterSeconds,
-      },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimit.retryAfterSeconds),
-        },
-      }
-    );
-  }
-
-  // 2. Validate Request Body with Zod
-  let bodyJson: unknown;
-  try {
-    bodyJson = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON request body.' }, { status: 400 });
-  }
-
-  const parseResult = planRequestSchema.safeParse(bodyJson);
-  if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Input validation failed', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
-  }
-
-  const { profile, aqi, pm25, cityName, bestWindow, worstWindow, noSafeWindowAvailable, language = 'en' } = parseResult.data;
+  const { profile, aqi, pm25, cityName, bestWindow, worstWindow, noSafeWindowAvailable, language = 'en' } = guarded.data;
 
   // Sanitize cityName to prevent prompt injection vectors
   const sanitizedCityName =
@@ -91,18 +66,8 @@ export async function POST(req: NextRequest) {
       .trim()
       .slice(0, 80) || 'Selected Location';
 
-  // 3. Compute Deterministic Scientific Exposure Output
-  const exposure = calculateDailyExposure({
-    ...profile,
-    currentAqi: aqi,
-    pm25Concentration: pm25,
-    timeOutdoorsHours: profile.outdoorHours,
-    indoorHours: Math.max(0, 24 - profile.outdoorHours),
-    vulnerableMembers: {
-      hasKids: profile.numKids > 0,
-      hasElderly: profile.numElderly > 0,
-    },
-  });
+  // Compute Deterministic Scientific Exposure Output
+  const exposure = calculateDailyExposure(householdProfileToExposureProfile(profile, aqi, pm25));
 
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -136,15 +101,11 @@ export async function POST(req: NextRequest) {
     });
   };
 
-  // 4. Fallback if no API key is configured or invalid
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+  if (!hasConfiguredGeminiKey(apiKey)) {
     return createFallbackResponse();
   }
 
-  // 5. Call Gemini API Server-Side with JSON Schema Enforcement
   try {
-    const ai = new GoogleGenAI({ apiKey });
-
     const languageInstruction =
       language === 'hi'
         ? 'LANGUAGE REQUIREMENT: Write all text fields (headline, executiveSummary, dailyBriefing, recommendedActivitySchedule, title, action, rationale, instructions, mythCheck, advice, communityAction, disclaimer) in natural, idiomatic HINDI using Devanagari script (हिन्दी).'
@@ -217,23 +178,15 @@ REQUIRED JSON STRUCTURE:
   "disclaimer": string
 }`;
 
-    const generatePromise = ai.models.generateContent({
-      model: process.env.GEMINI_MODEL ?? 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
-    });
-
-    // 20-second timeout guard to prevent thread blocking
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Gemini API call timed out after 20000ms')), 20000)
+    const response = await callGeminiWithTimeout(apiKey, (ai, model) =>
+      ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+        },
+      })
     );
-
-    const response: Awaited<ReturnType<typeof ai.models.generateContent>> = await Promise.race([
-      generatePromise,
-      timeoutPromise,
-    ]);
 
     const responseText = response.text?.trim() || '';
     const parsedJson = JSON.parse(responseText);
@@ -250,9 +203,7 @@ REQUIRED JSON STRUCTURE:
       source: 'gemini_personalized',
     });
   } catch (error) {
-    const errMessage = error instanceof Error ? error.message : String(error);
-    const errStatus = (error as { status?: number | string })?.status;
-    console.error(`Gemini plan API call failed [status: ${errStatus ?? 'N/A'}]: ${errMessage}`);
+    logSanitizedGeminiError('Gemini plan API call failed', error);
     return createFallbackResponse();
   }
 }

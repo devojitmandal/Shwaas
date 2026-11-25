@@ -48,7 +48,7 @@ export default function BreathBudgetTracker({
   // What-If live interactive overrides affecting all household member budgets
   const [whatIf, setWhatIf] = useState<WhatIfBudgetOverrides>({});
 
-  // Configured realistic daily routine with scheduled hour
+  // Configured baseline daily routine; profile-linked fields stay undefined until manually overridden
   const [activities, setActivities] = useState<BudgetActivity[]>([
     {
       id: 'act-1',
@@ -57,8 +57,6 @@ export default function BreathBudgetTracker({
       scheduledHour: 8,
       durationMinutes: 45,
       intensity: 'moderate_commute',
-      commuteType,
-      maskType,
     },
     {
       id: 'act-2',
@@ -78,9 +76,26 @@ export default function BreathBudgetTracker({
       durationMinutes: 480,
       intensity: 'sleep_rest',
       isIndoor: true,
-      hasPurifier,
     },
   ]);
+
+  // Resolve baseline activities against live HouseholdProfile props unless overridden per-row
+  const resolvedActivities: BudgetActivity[] = activities.map((act) => {
+    if (act.id === 'act-1') {
+      return {
+        ...act,
+        commuteType: act.commuteType ?? commuteType,
+        maskType: act.maskType ?? maskType,
+      };
+    }
+    if (act.id === 'act-3') {
+      return {
+        ...act,
+        hasPurifier: act.hasPurifier ?? hasPurifier,
+      };
+    }
+    return act;
+  });
 
   const [newActName, setNewActName] = useState('');
   const [newActDuration, setNewActDuration] = useState(30);
@@ -112,7 +127,7 @@ export default function BreathBudgetTracker({
     hourlyPm25Forecast,
     hasPurifier: effectivePurifier,
     maskType: effectiveMask,
-    activities,
+    activities: resolvedActivities,
   });
 
   const handleToggleWhatIfMask = () => {
@@ -172,7 +187,8 @@ export default function BreathBudgetTracker({
     setActivities(
       activities.map((a) => {
         if (a.id === id) {
-          const nextMask: MaskType = a.maskType === 'n95_kn95' ? 'none' : 'n95_kn95';
+          const currentMask = a.id === 'act-1' ? (a.maskType ?? maskType) : a.maskType;
+          const nextMask: MaskType = currentMask === 'n95_kn95' ? 'none' : 'n95_kn95';
           return { ...a, maskType: nextMask, maskFit: 'typical_fit' };
         }
         return a;
@@ -184,7 +200,8 @@ export default function BreathBudgetTracker({
     setActivities(
       activities.map((a) => {
         if (a.id === id) {
-          return { ...a, hasPurifier: !a.hasPurifier };
+          const currentPurifier = a.id === 'act-3' ? (a.hasPurifier ?? hasPurifier) : !!a.hasPurifier;
+          return { ...a, hasPurifier: !currentPurifier };
         }
         return a;
       })
@@ -400,7 +417,7 @@ export default function BreathBudgetTracker({
 
         <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
           {budget.items.map((item) => {
-            const act = activities.find((a) => a.id === item.id);
+            const act = resolvedActivities.find((a) => a.id === item.id);
             if (!act) return null;
 
             return (

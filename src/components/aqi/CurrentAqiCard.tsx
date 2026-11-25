@@ -1,6 +1,7 @@
 'use client';
 
 import { NaqiCategory } from '@/lib/aqi/naqi';
+import { formatClockTime } from '@/lib/utils/timeFormat';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface CurrentAqiCardProps {
@@ -28,11 +29,7 @@ export default function CurrentAqiCard({
   description,
   timestamp,
 }: CurrentAqiCardProps) {
-  // Format readable time
-  const formattedTime = new Date(timestamp).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const formattedTime = formatClockTime(timestamp);
 
   return (
     <article

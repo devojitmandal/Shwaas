@@ -1,8 +1,7 @@
 import { z } from 'zod';
 import {
-  PARTICLE_PENETRATION_EFFICIENCY,
-  SURFACE_DEPOSITION_RATE_PER_H,
   BREATHING_RATES,
+  computeSteadyStateIndoorConcentration,
 } from '../exposure/engine';
 import { UG_PER_BUDGET_POINT } from '../exposure/breathBudget';
 
@@ -103,7 +102,7 @@ export function mapSourcesToIndoorGeneration(
 }
 
 /**
- * Calculates mass-balance steady-state indoor PM2.5:
+ * Calculates mass-balance steady-state indoor PM2.5 using the shared core solver.
  * C_in = (P * AER * C_out + S / V) / (AER + k_dep + CADR / V)
  */
 export function computeSteadyStateIndoorPm25(
@@ -113,13 +112,7 @@ export function computeSteadyStateIndoorPm25(
   cadrM3PerHr = 0,
   roomVolumeM3 = 45 // 16 m² * 2.8 m
 ): number {
-  const p = PARTICLE_PENETRATION_EFFICIENCY; // 0.80
-  const kDep = SURFACE_DEPOSITION_RATE_PER_H; // 0.20
-  const cleanRate = cadrM3PerHr / roomVolumeM3;
-
-  const totalRemoval = aer + kDep + cleanRate;
-  const numerator = p * aer * Math.max(0, cOut) + sUgPerHour / roomVolumeM3;
-  return Math.max(1, numerator / totalRemoval);
+  return computeSteadyStateIndoorConcentration(cOut, aer, sUgPerHour, cadrM3PerHr, roomVolumeM3);
 }
 
 /**

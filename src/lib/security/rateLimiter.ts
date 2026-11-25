@@ -33,9 +33,14 @@ export function checkRateLimit(
   const now = Date.now();
   const windowStart = now - config.windowMs;
 
-  // Prune map if it grows beyond maximum threshold
-  if (ipHits.size > MAX_TRACKED_IPS) {
+  // Prune stale entries first, then enforce hard LRU cap if active burst exceeds MAX_TRACKED_IPS
+  if (ipHits.size >= MAX_TRACKED_IPS) {
     pruneStaleEntries(now, config.windowMs);
+    while (!ipHits.has(ip) && ipHits.size >= MAX_TRACKED_IPS) {
+      const oldestKey = ipHits.keys().next().value;
+      if (oldestKey === undefined) break;
+      ipHits.delete(oldestKey);
+    }
   }
 
   const timestamps = ipHits.get(ip) || [];
@@ -54,6 +59,8 @@ export function checkRateLimit(
   }
 
   activeTimestamps.push(now);
+  // Refresh Map insertion order so active IPs stay at the tail
+  ipHits.delete(ip);
   ipHits.set(ip, activeTimestamps);
 
   return {
